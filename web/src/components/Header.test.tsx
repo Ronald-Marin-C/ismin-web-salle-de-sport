@@ -1,14 +1,10 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { TOKEN_KEY } from '../auth/AuthProvider';
-import { MOCK_MODELS } from '../models.mock';
-import { fakeApi, makeToken, renderApp } from '../test-utils';
+import { makeToken, renderApp } from '../test-utils';
 
 /** Given. Step 4. */
-beforeEach(() => {
-  fakeApi({ 'GET /models': () => Response.json(MOCK_MODELS) });
-});
 
 describe('Header', () => {
   it('offers to log in when logged out', () => {

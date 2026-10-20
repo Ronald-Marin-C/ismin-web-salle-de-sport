@@ -1,5 +1,3 @@
-import type { Model, NewModel, Task } from './model';
-
 /** Where the API runs, read from `.env`. The fallback is the port of `npm run start:dev`. */
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
@@ -35,22 +33,6 @@ export async function throwIfNotOk(res: Response): Promise<void> {
   throw new ApiError(res.status, `L'API a répondu ${res.status}`, details);
 }
 
-/** Given, from TP7. GET /models, filtered on the server when a task is given. */
-export async function fetchModels(task?: Task): Promise<Model[]> {
-  const url = task ? `${API_URL}/models?task=${task}` : `${API_URL}/models`;
-  const res = await fetch(url);
-  await throwIfNotOk(res);
-  // A promise made to the compiler, not a check: the API is trusted to send models.
-  return (await res.json()) as Model[];
-}
-
-/** Given, from TP8. GET /models/:id. An unknown id: an ApiError whose `status` is 404. */
-export async function fetchModel(id: string): Promise<Model> {
-  const res = await fetch(`${API_URL}/models/${id}`);
-  await throwIfNotOk(res);
-  return (await res.json()) as Model;
-}
-
 /**
  * POST /auth/login, and the `access_token` of the answer. A wrong password: 401.
  *
@@ -66,22 +48,4 @@ export async function login(username: string, password: string): Promise<string>
   await throwIfNotOk(res);
   const body = (await res.json()) as { access_token: string };
   return body.access_token;
-}
-
-/**
- * POST /models, with the token. Returns the model the API created. The
- * errors: 400 invalid body, 401 no valid token, 409 id already taken,
- * 422 unknown organisation.
- */
-export async function createModel(model: NewModel, token: string): Promise<Model> {
-  const res = await fetch(`${API_URL}/models`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(model),
-  });
-  await throwIfNotOk(res);
-  return (await res.json()) as Model;
 }

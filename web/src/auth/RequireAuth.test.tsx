@@ -1,31 +1,64 @@
-import { screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it } from 'vitest';
+import { LoginPage } from '../pages/LoginPage';
 import { fakeApi, makeToken, renderApp } from '../test-utils';
+import { AuthProvider } from './AuthProvider';
+import { RequireAuth } from './RequireAuth';
 
-/** Given. Step 5: /models/new is for the logged-in only. */
+/**
+ * The planning, at /, is for the logged-in only.
+ *
+ * After a login, the login page goes to / when it was not sent by
+ * RequireAuth. To prove that it comes back to the page that was asked for,
+ * the last test guards another page, /secret, next to the real login page.
+ */
+function renderGuardedPage(route: string) {
+  return render(
+    <MemoryRouter initialEntries={[route]}>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<h2>Accueil</h2>} />
+          <Route
+            path="/secret"
+            element={
+              <RequireAuth>
+                <h2>Page protégée</h2>
+              </RequireAuth>
+            }
+          />
+          <Route path="/login" element={<LoginPage />} />
+        </Routes>
+      </AuthProvider>
+    </MemoryRouter>,
+  );
+}
+
 describe('RequireAuth', () => {
-  it('shows the protected page to a logged-in user', () => {
-    renderApp('/models/new', { token: makeToken({ username: 'alice' }) });
+  it('shows the planning to a logged-in user', () => {
+    renderApp('/', { token: makeToken({ username: 'alice' }) });
 
-    expect(screen.getByRole('heading', { name: 'Ajouter un modèle' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Planning' })).toBeInTheDocument();
   });
 
   it('sends a logged-out user to the login page instead', () => {
-    renderApp('/models/new');
+    renderApp('/');
 
     expect(screen.getByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Ajouter un modèle' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Planning' })).not.toBeInTheDocument();
   });
 
   it('comes back to the page that was asked for, once logged in', async () => {
     fakeApi({ 'POST /auth/login': () => Response.json({ access_token: makeToken({ username: 'alice' }) }) });
-    renderApp('/models/new');
+    renderGuardedPage('/secret');
+    expect(screen.getByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText('Identifiant'), 'alice');
     await userEvent.type(screen.getByLabelText('Mot de passe'), 'secret');
     await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
 
-    expect(await screen.findByRole('heading', { name: 'Ajouter un modèle' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Page protégée' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Accueil' })).not.toBeInTheDocument();
   });
 });

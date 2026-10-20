@@ -1,71 +1,64 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { MOCK_MODELS } from './models.mock';
-import { fakeApi, renderApp } from './test-utils';
+import { describe, expect, it } from 'vitest';
+import { makeToken, renderApp } from './test-utils';
 
 /**
- * Given, from TP8: green from the start, and they must stay green. One URL,
- * one page, and links to go from one to the other. The filter of the
- * catalogue tells which page is shown: only the catalogue has it.
+ * From TP8: one URL, one page, and links to go from one to the other. The
+ * heading "Planning" tells which page is shown: only the planning has it.
+ * The planning is for the logged-in only, hence the token.
  */
-const llama = MOCK_MODELS.find((model) => model.id === 'llama-3-1-8b-instruct')!;
+const token = makeToken({ username: 'alice' });
 
-function catalogueIsShown() {
-  return screen.queryByRole('navigation', { name: 'Filtrer par tâche' }) !== null;
+function planningIsShown() {
+  return screen.queryByRole('heading', { name: 'Planning' }) !== null;
 }
 
-beforeEach(() => {
-  fakeApi({
-    'GET /models': () => Response.json(MOCK_MODELS),
-    [`GET /models/${llama.id}`]: () => Response.json(llama),
-  });
-});
-
 describe('App, the routes', () => {
-  it('shows the catalogue on /', async () => {
-    renderApp('/');
+  it('shows the planning on /', () => {
+    renderApp('/', { token });
 
-    expect(await screen.findAllByRole('listitem')).toHaveLength(MOCK_MODELS.length);
+    expect(planningIsShown()).toBe(true);
   });
 
-  it('shows "Page introuvable" on a URL that no route knows, and not the catalogue', () => {
-    renderApp('/nimporte-quoi');
+  it('shows "Page introuvable" on a URL that no route knows, and not the planning', () => {
+    renderApp('/nimporte-quoi', { token });
 
     expect(screen.getByRole('heading', { name: 'Page introuvable' })).toBeInTheDocument();
-    expect(catalogueIsShown()).toBe(false);
+    expect(planningIsShown()).toBe(false);
   });
 
-  it('shows another page than the catalogue on /models/<id>', () => {
-    renderApp(`/models/${llama.id}`);
+  it('shows the login page on /login, and not the planning', () => {
+    renderApp('/login');
 
-    expect(catalogueIsShown()).toBe(false);
+    expect(screen.getByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
+    expect(planningIsShown()).toBe(false);
   });
 });
 
 describe('App, the links', () => {
-  it('goes back to the catalogue from the 404 page', async () => {
+  it('goes back to the planning from the 404 page', async () => {
+    renderApp('/nimporte-quoi', { token });
+
+    await userEvent.click(screen.getByRole('link', { name: 'Retour au planning' }));
+
+    expect(planningIsShown()).toBe(true);
+  });
+
+  it('opens the login page from the header when logged out', async () => {
     renderApp('/nimporte-quoi');
 
-    await userEvent.click(screen.getByRole('link', { name: 'Retour au catalogue' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Se connecter' }));
 
-    expect(await screen.findAllByRole('listitem')).toHaveLength(MOCK_MODELS.length);
+    expect(screen.getByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
   });
 
-  it('opens the page of a model when its name is clicked in the catalogue', async () => {
-    renderApp('/');
+  it('goes back to the planning with the title of the header', async () => {
+    renderApp('/nimporte-quoi', { token });
+    expect(planningIsShown()).toBe(false);
 
-    await userEvent.click(await screen.findByRole('link', { name: llama.name }));
+    await userEvent.click(screen.getByRole('link', { name: 'Salle de sport' }));
 
-    expect(catalogueIsShown()).toBe(false);
-  });
-
-  it('goes back to the catalogue with the title of the header', async () => {
-    renderApp(`/models/${llama.id}`);
-    expect(catalogueIsShown()).toBe(false);
-
-    await userEvent.click(screen.getByRole('link', { name: 'ModelZoo' }));
-
-    expect(catalogueIsShown()).toBe(true);
+    expect(planningIsShown()).toBe(true);
   });
 });
