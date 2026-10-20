@@ -28,7 +28,6 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const token = extractBearerToken(request.headers.authorization);
     if (!token) throw new UnauthorizedException('Missing bearer token');
-    console.log('AuthGuard token:', token);
 
     try {
       request.user = await this.jwt.verifyAsync<JwtPayload>(token);

@@ -29,8 +29,8 @@ async function bootstrap() {
   // Swagger UI on /docs, the OpenAPI document on /docs-json.
   // `persistAuthorization` keeps the token pasted in "Authorize" across reloads.
   const config = new DocumentBuilder()
-    .setTitle('Model catalogue API')
-    .setDescription('Get a token with POST /auth/login, then paste it in "Authorize".')
+    .setTitle('Salle de sport API')
+    .setDescription('Réservation des créneaux de la salle de musculation de Castelmont')
     .setVersion('1.0')
     .addBearerAuth()
     .build();

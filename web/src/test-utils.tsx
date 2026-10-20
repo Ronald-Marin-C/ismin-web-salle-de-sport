@@ -57,7 +57,7 @@ type Handler = (request: Request) => Response | Promise<Response>;
 
 /**
  * Replaces `fetch` by a fake API. `routes` maps a method and a path to an
- * answer: `{ 'GET /models': () => Response.json([...]) }`. The query string
+ * answer: `{ 'GET /slots': () => Response.json([...]) }`. The query string
  * counts when the route has one. Any other request: 404.
  *
  * Returns the list of the requests made, to check what the app sent.
@@ -85,7 +85,7 @@ export function nestError(status: number, message: string | string[]): Response 
   return Response.json({ statusCode: status, message }, { status });
 }
 
-/** The path and query of a request, without the host: "/models?task=translation". */
+/** The path and query of a request, without the host: "/users?search=martin". */
 export function pathOf(request: Request): string {
   const { pathname, search } = new URL(request.url);
   return pathname + search;

@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
 
 /**
- * The top of every page: the title, back to the catalogue, and the links.
+ * The top of every page: the title, back to the planning, and the links.
  *
  * <Link> changes the URL without asking the server for a new page: React
  * keeps its state, TanStack Query keeps its cache.
@@ -14,13 +14,12 @@ export const Header = () => {
     <header className="app-header">
       <div>
         <h1 className="app-title">
-          <Link to="/">ModelZoo</Link>
+          <Link to="/">Salle de sport</Link>
         </h1>
-        <p className="app-tagline">Le catalogue des modèles d'IA</p>
+        <p className="app-tagline">Réservez votre créneau à la salle de muscu</p>
       </div>
 
       <nav className="app-nav" aria-label="Navigation principale">
-        <Link to="/models/new">Ajouter un modèle</Link>
         {user ? (
           <>
             <span className="app-user">{user.username}</span>

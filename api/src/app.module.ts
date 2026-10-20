@@ -1,8 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module.js';
 import { HealthController } from './health/health.controller.js';
-import { ModelsModule } from './models/models.module.js';
-import { OrganisationsModule } from './organisations/organisations.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 /**
@@ -10,7 +8,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
  * compose can use it to know when the API is up.
  */
 @Module({
-  imports: [PrismaModule, OrganisationsModule, ModelsModule, AuthModule],
+  imports: [PrismaModule, AuthModule],
   controllers: [HealthController],
 })
 export class AppModule {}

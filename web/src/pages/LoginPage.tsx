@@ -25,7 +25,7 @@ export const LoginPage = () => {
 
     try {
       await login(username, password);
-      // Back to the page RequireAuth came from, or to the catalogue. replace: the
+      // Back to the page RequireAuth came from, or to the planning. replace: the
       // login page does not stay in the history.
       const from = (location.state as FromState | null)?.from ?? '/';
       navigate(from, { replace: true });
@@ -76,8 +76,6 @@ export const LoginPage = () => {
           Se connecter
         </button>
       </form>
-
-      <p className="hint">Deux comptes&nbsp;: alice, administratrice, et bob. Le mot de passe&nbsp;: secret.</p>
     </section>
   );
 };

@@ -1,8 +1,8 @@
 {
-  "name": "tp10-modelzoo-web",
+  "name": "salle-de-sport-web",
   "version": "1.0.0",
   "private": true,
-  "description": "TP10: the ModelZoo frontend, built and served by nginx in a container. Web Development, ISMIN 3A.",
+  "description": "Salle de sport frontend: booking the slots of the Castelmont weight room. Web Development, ISMIN 3A.",
   "type": "module",
   "scripts": {
     "dev": "vite",

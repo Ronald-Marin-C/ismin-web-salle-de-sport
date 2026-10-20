@@ -2,7 +2,6 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { TOKEN_KEY } from '../auth/AuthProvider';
-import { MOCK_MODELS } from '../models.mock';
 import { fakeApi, makeToken, nestError, pathOf, renderApp } from '../test-utils';
 
 /** Given. Step 3, the page and its route. */
@@ -16,10 +15,7 @@ async function logInAs(username: string, password: string) {
 
 describe('LoginPage', () => {
   it('sends what was typed to POST /auth/login', async () => {
-    const requests = fakeApi({
-      'POST /auth/login': () => Response.json({ access_token: token }),
-      'GET /models': () => Response.json(MOCK_MODELS),
-    });
+    const requests = fakeApi({ 'POST /auth/login': () => Response.json({ access_token: token }) });
     renderApp('/login');
 
     await logInAs('alice', 'secret');
@@ -29,16 +25,13 @@ describe('LoginPage', () => {
     await expect(login!.json()).resolves.toEqual({ username: 'alice', password: 'secret' });
   });
 
-  it('goes to the catalogue once logged in, and keeps the token', async () => {
-    fakeApi({
-      'POST /auth/login': () => Response.json({ access_token: token }),
-      'GET /models': () => Response.json(MOCK_MODELS),
-    });
+  it('goes to the planning once logged in, and keeps the token', async () => {
+    fakeApi({ 'POST /auth/login': () => Response.json({ access_token: token }) });
     renderApp('/login');
 
     await logInAs('alice', 'secret');
 
-    expect(await screen.findByRole('navigation', { name: 'Filtrer par tâche' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Planning' })).toBeInTheDocument();
     expect(localStorage.getItem(TOKEN_KEY)).toBe(token);
   });
 
