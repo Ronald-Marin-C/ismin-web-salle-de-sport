@@ -1,8 +1,8 @@
 {
-  "name": "tp10-modelzoo-api",
+  "name": "salle-de-sport-api",
   "version": "1.0.0",
   "private": true,
-  "description": "TP10: the ModelZoo API, ready for Docker. Web Development, ISMIN 3A.",
+  "description": "Salle de sport API: booking the slots of the Castelmont weight room. Web Development, ISMIN 3A.",
   "type": "module",
   "scripts": {
     "postinstall": "prisma generate",
