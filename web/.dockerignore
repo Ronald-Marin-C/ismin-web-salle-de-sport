@@ -1,1 +1,4 @@
-# TODO step 6. What must never enter the image, one pattern per line.
+# Never sent to the build: local settings, and what the image builds itself.
+node_modules
+dist
+.env
