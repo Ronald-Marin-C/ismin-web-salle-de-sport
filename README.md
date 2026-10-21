@@ -6,7 +6,12 @@ Projet du cours Développement Web, ISMIN 3A. API NestJS + Prisma (SQLite) dans 
 
 ## Lancer
 
-`docker compose up` à la racine (le fichier `compose.yaml` arrive bientôt).
+```bash
+docker compose up --build
+```
+
+- Front : http://localhost:8080
+- API : http://localhost:3000 (Swagger : http://localhost:3000/docs)
 
 ## Tests
 
