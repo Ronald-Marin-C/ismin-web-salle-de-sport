@@ -1,0 +1,60 @@
+# The whole application in one command: docker compose up --build
+#   migrate  applies the migrations and seeds the database, then exits
+#   api      NestJS on http://localhost:3000, Swagger UI on /docs
+#   web      the React build, served by nginx on http://localhost:8080
+# The SQLite file lives in the `data` volume, shared by migrate and api.
+
+services:
+  migrate:
+    # The `build` stage still has the Prisma CLI and tsx, dropped from the final image.
+    build:
+      context: ./api
+      target: build
+    environment:
+      DATABASE_URL: file:/app/db/salle.db
+      SCHOOL_EMAIL_DOMAIN: castelmont.fr
+      TZ: Europe/Paris
+    volumes:
+      - data:/app/db
+    # `sh -c` runs both commands; the seed only runs if the migrations succeed.
+    command: sh -c "npx prisma migrate deploy && npm run db:seed"
+
+  api:
+    build: ./api
+    environment:
+      DATABASE_URL: file:/app/db/salle.db
+      # Development default, so that a fresh clone starts without any setup.
+      # Set JWT_SECRET in the shell to use another secret.
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      PORT: "3000"
+      WEB_ORIGIN: http://localhost:8080
+      SCHOOL_EMAIL_DOMAIN: castelmont.fr
+      TZ: Europe/Paris
+    ports:
+      - "3000:3000"
+    volumes:
+      - data:/app/db
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 5s
+      retries: 10
+
+  web:
+    build:
+      context: ./web
+      # The browser calls the API through the published port, not through the
+      # compose network: hence localhost, not api.
+      args:
+        VITE_API_URL: http://localhost:3000
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  data:
