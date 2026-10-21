@@ -1,3 +1,10 @@
-# TODO step 2. What must never enter the image, one pattern per line.
-# Think of what `COPY . .` would copy from your machine: your secrets, and
-# folders that the image builds by itself.
+# Never sent to the build: local secrets and databases, and what the image
+# installs or generates by itself.
+node_modules
+dist
+.env
+*.db
+*.db-journal
+src/generated
+test
+coverage

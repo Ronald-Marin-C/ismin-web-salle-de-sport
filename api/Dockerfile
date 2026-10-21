@@ -1,16 +1,32 @@
-# TODO step 2. The image of the API, in one stage:
-#
-#   FROM     the official Node 26 image, its alpine variant
-#   WORKDIR  /app
-#   COPY     package.json, package-lock.json, prisma.config.ts and
-#            prisma/schema.prisma, then RUN npm ci. The dependencies before
-#            the code: this layer stays in the cache as long as they do not
-#            change. The schema with them: the postinstall of package.json
-#            runs `prisma generate`, which reads it.
-#   COPY     the rest of the code, then RUN npm run build
-#   CMD      node dist/main.js: the compiled code, not the development server
-#
-# TODO step 3. Two stages. The first one, named `build`, compiles. The final
-# one starts again from an empty Node image and only keeps what runs: the
-# production dependencies, and the dist/ of `build`. Both run as `node`, and
-# both create the folder of the database file, owned by `node`.
+# Image of the API, in two stages. `build` compiles the code; compose also
+# runs it as the `migrate` service, since it keeps the Prisma CLI and tsx.
+# The final stage only keeps what `node dist/main.js` needs.
+
+FROM node:26-alpine AS build
+WORKDIR /app
+# Dependencies before the code, so this layer stays cached while they do not
+# change. The schema comes with them: the postinstall runs `prisma generate`.
+COPY package.json package-lock.json prisma.config.ts ./
+COPY prisma/schema.prisma ./prisma/
+RUN npm ci
+COPY . .
+RUN npm run build
+# SQLite writes the database and its journal side by side: the whole folder
+# must belong to `node`, the user the processes run as, not to root.
+RUN mkdir -p /app/db && chown node:node /app/db
+USER node
+
+FROM node:26-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package.json package-lock.json ./
+# Production dependencies only. Install scripts are skipped, as the Prisma
+# client is already compiled into dist/; better-sqlite3 still needs its native
+# binding. The cache is cleaned in the same layer, or the image would not shrink.
+RUN npm ci --omit=dev --omit=optional --ignore-scripts \
+ && npm rebuild better-sqlite3 && npm cache clean --force
+COPY --from=build /app/dist ./dist
+RUN mkdir -p /app/db && chown node:node /app/db
+USER node
+EXPOSE 3000
+CMD ["node", "dist/main.js"]
