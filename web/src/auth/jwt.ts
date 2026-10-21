@@ -11,7 +11,7 @@ export interface JwtPayload {
 }
 
 /**
- * Given. Reads the payload of a JWT, the part between the two dots, or null
+ * Reads the payload of a JWT, the part between the two dots, or null
  * when the token cannot be read.
  *
  * The payload is not secret: it is encoded in base64url, not encrypted.

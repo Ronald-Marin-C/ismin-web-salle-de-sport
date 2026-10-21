@@ -2,7 +2,7 @@
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 /**
- * Given. An answer of the API that is not ok: a 4xx or a 5xx. `status` says
+ * An answer of the API that is not ok: a 4xx or a 5xx. `status` says
  * which one, and the pages decide what to show from it. `details` holds what
  * the API explained, one sentence per invalid field for a 400.
  */
@@ -19,7 +19,7 @@ export class ApiError extends Error {
 }
 
 /**
- * Given. Does nothing when the answer is ok, throws an ApiError otherwise.
+ * Does nothing when the answer is ok, throws an ApiError otherwise.
  *
  * NestJS explains its errors in the body, `{ statusCode, message, error }`:
  * `message` is a sentence, or a list of sentences for a 400.
