@@ -7,7 +7,7 @@ const secret = process.env.JWT_SECRET;
 if (!secret) throw new Error('JWT_SECRET is not set: cp .env.example .env');
 
 /**
- * Given. Signs and verifies tokens with the secret from `.env`.
+ * Signs and verifies the JWTs with JWT_SECRET; a token is valid for one hour.
  *
  * `global: true` makes JwtService injectable everywhere, so `AuthGuard` works
  * in any module without importing anything.

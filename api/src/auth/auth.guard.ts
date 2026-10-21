@@ -16,7 +16,7 @@ export interface AuthenticatedRequest {
 }
 
 /**
- * Given. Runs before the handler of every route it is applied to:
+ * Runs before the handler of every route it is applied to:
  * reads the Bearer token, verifies it, and attaches the payload to the request.
  * No token, or a bad one: 401, and the handler never runs.
  */

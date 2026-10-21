@@ -5,7 +5,7 @@ import type { AuthenticatedRequest } from './auth.guard.js';
 import { ROLES_KEY } from './roles.decorator.js';
 
 /**
- * step 4. Runs after AuthGuard, which must have filled
+ * Runs after AuthGuard, which must have filled
  * `request.user`. No @Roles() on the route: everyone logged in may pass.
  */
 @Injectable()

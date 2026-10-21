@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 
-/** GET /health: Docker and the professor call it to know the API is up. */
+/** GET /health: the liveness check that the compose healthcheck calls. */
 describe('/health API', () => {
   let app: INestApplication;
 
