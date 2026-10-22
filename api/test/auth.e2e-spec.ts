@@ -144,6 +144,7 @@ describe('/auth API', () => {
       ['an invalid email', { email: 'alice.martin', password: TEST_PASSWORD }],
       ['an empty password', { email: 'alice.martin@castelmont.fr', password: '' }],
       ['no password', { email: 'alice.martin@castelmont.fr' }],
+      ['a password that is not a string', { email: 'alice.martin@castelmont.fr', password: 12345678 }],
     ])('answers 400 for %s', async (_case, body) => {
       await login(body).expect(400);
     });
