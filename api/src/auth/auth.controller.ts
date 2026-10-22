@@ -1,43 +1,99 @@
-import { Body, Controller, Get, HttpCode, Post, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ApiBadRequestResponse, ApiBearerAuth, ApiOkResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { findUser } from '../users.js';
-import { AuthGuard, type AuthenticatedRequest, type JwtPayload } from './auth.guard.js';
+import {
+  BadRequestException,
+  Body,
+  ConflictException,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { UserNotFound } from '../users/user.js';
+import { EmailAlreadyUsed, EmailNotFromSchool, InvalidCredentials } from './auth.errors.js';
+import { AuthGuard, type JwtPayload } from './auth.guard.js';
+import { AuthService } from './auth.service.js';
+import { CurrentUser } from './current-user.decorator.js';
 import { AccessTokenDto } from './dto/access-token.dto.js';
-import { JwtPayloadDto } from './dto/jwt-payload.dto.js';
 import { LoginDto } from './dto/login.dto.js';
-import { verifyPassword } from './password.js';
+import { MeDto } from './dto/me.dto.js';
+import { RegisterDto } from './dto/register.dto.js';
 
 /**
- * Given.
- *   POST /auth/login   { username, password }  →  { access_token }, or 401
- *   GET  /auth/whoami  with a Bearer token      →  the token's payload, or 401
+ * Registration, login and profile of the connected user. Translates the
+ * domain errors into HTTP statuses.
  */
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly jwt: JwtService) {}
+  constructor(private readonly auth: AuthService) {}
 
-  @Post('login')
-  @HttpCode(200)
-  @ApiOkResponse({ type: AccessTokenDto })
-  @ApiBadRequestResponse({ description: 'Invalid body' })
-  @ApiUnauthorizedResponse({ description: 'Wrong username or password' })
-  async login(@Body() dto: LoginDto): Promise<{ access_token: string }> {
-    const user = findUser(dto.username);
-    if (!user || !verifyPassword(dto.password, user.passwordHash)) {
-      throw new UnauthorizedException('Wrong username or password');
+  /**
+   * Creates a student account and logs it in.
+   *
+   * @throws BadRequestException (400) when the email is outside the school domain.
+   * @throws ConflictException (409) when an account already uses this email.
+   */
+  @Post('register')
+  @ApiOperation({ summary: 'Create a student account with the school email' })
+  @ApiCreatedResponse({ type: AccessTokenDto, description: 'Account created; a token valid for one hour' })
+  @ApiBadRequestResponse({ description: 'Invalid body, or an email outside the school domain' })
+  @ApiConflictResponse({ description: 'An account already uses this email' })
+  async register(@Body() dto: RegisterDto): Promise<AccessTokenDto> {
+    try {
+      return { access_token: await this.auth.register(dto) };
+    } catch (error) {
+      if (error instanceof EmailNotFromSchool) throw new BadRequestException(error.message);
+      if (error instanceof EmailAlreadyUsed) throw new ConflictException(error.message);
+      throw error;
     }
-
-    const payload: JwtPayload = { sub: user.id, username: user.username, role: user.role };
-    return { access_token: await this.jwt.signAsync(payload) };
   }
 
-  @Get('whoami')
+  /**
+   * Exchanges the email and password for an access token.
+   *
+   * @throws UnauthorizedException (401) for an unknown email or a wrong password.
+   */
+  @Post('login')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Log in with the school email' })
+  @ApiOkResponse({ type: AccessTokenDto, description: 'A token valid for one hour' })
+  @ApiBadRequestResponse({ description: 'Invalid body' })
+  @ApiUnauthorizedResponse({ description: 'Wrong email or password' })
+  async login(@Body() dto: LoginDto): Promise<AccessTokenDto> {
+    try {
+      return { access_token: await this.auth.login(dto.email, dto.password) };
+    } catch (error) {
+      if (error instanceof InvalidCredentials) throw new UnauthorizedException(error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Returns the profile of the account the token belongs to.
+   *
+   * @throws UnauthorizedException (401) when the account no longer exists.
+   */
+  @Get('me')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  @ApiOkResponse({ type: JwtPayloadDto })
-  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
-  whoami(@Req() request: AuthenticatedRequest): JwtPayload | undefined {
-    return request.user;   // card 6 replaces this @Req() with a decorator of your own
+  @ApiOperation({ summary: 'Profile of the connected user, initiation status included' })
+  @ApiOkResponse({ type: MeDto })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token, or the account no longer exists' })
+  async me(@CurrentUser() user: JwtPayload): Promise<MeDto> {
+    try {
+      return await this.auth.me(user.sub);
+    } catch (error) {
+      if (error instanceof UserNotFound) throw new UnauthorizedException(error.message);
+      throw error;
+    }
   }
 }

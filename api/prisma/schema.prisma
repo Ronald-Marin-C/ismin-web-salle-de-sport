@@ -8,3 +8,21 @@ generator client {
   moduleFormat        = "esm"
   importFileExtension = "js"
 }
+
+/// A student or a referent. Registration only creates students; the referents come from the seed.
+model User {
+  id                    String    @id @default(uuid())
+  /// Stored lowercased, so that uniqueness ignores case.
+  email                 String    @unique
+  passwordHash          String
+  firstName             String
+  lastName              String
+  /// 'student' | 'referent': SQLite has no enums, the service narrows it.
+  role                  String    @default("student")
+  /// Null until a referent validates the initiation.
+  initiationValidatedAt DateTime?
+  /// Id of the referent who validated the initiation.
+  initiationValidatedBy String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}

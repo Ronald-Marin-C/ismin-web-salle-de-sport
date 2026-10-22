@@ -1,11 +1,14 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import type { Role } from '../users.js';
+import type { Role } from '../users/user.js';
 
-/** What the token carries. `sub` is the user id: that is the JWT convention. */
+/**
+ * What the token carries. `sub` is the user id: that is the JWT convention.
+ * The initiation stays out of it, since a referent may validate it after the login.
+ */
 export interface JwtPayload {
   sub: string;
-  username: string;
+  email: string;
   role: Role;
 }
 
