@@ -36,6 +36,12 @@ import { RegisterDto } from './dto/register.dto.js';
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
+  /**
+   * Creates a student account and logs it in.
+   *
+   * @throws BadRequestException (400) when the email is outside the school domain.
+   * @throws ConflictException (409) when an account already uses this email.
+   */
   @Post('register')
   @ApiOperation({ summary: 'Create a student account with the school email' })
   @ApiCreatedResponse({ type: AccessTokenDto, description: 'Account created; a token valid for one hour' })
@@ -51,6 +57,11 @@ export class AuthController {
     }
   }
 
+  /**
+   * Exchanges the email and password for an access token.
+   *
+   * @throws UnauthorizedException (401) for an unknown email or a wrong password.
+   */
   @Post('login')
   @HttpCode(200)
   @ApiOperation({ summary: 'Log in with the school email' })
@@ -66,6 +77,11 @@ export class AuthController {
     }
   }
 
+  /**
+   * Returns the profile of the account the token belongs to.
+   *
+   * @throws UnauthorizedException (401) when the account no longer exists.
+   */
   @Get('me')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
