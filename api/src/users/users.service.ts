@@ -42,4 +42,15 @@ export class UsersService {
     const row = await this.prisma.user.findUnique({ where: { email } });
     return row ? { user: this.toUser(row), passwordHash: row.passwordHash } : undefined;
   }
+
+  /**
+   * Creates an account with the `student` role, the only one a registration can give.
+   *
+   * @param data `email` lowercase; `passwordHash` made by `hashPassword`.
+   * @throws Prisma.PrismaClientKnownRequestError (code `P2002`) when the email is already used.
+   */
+  async createStudent(data: Pick<User, 'email' | 'firstName' | 'lastName'> & { passwordHash: string }): Promise<User> {
+    const row = await this.prisma.user.create({ data: { ...data, role: 'student' } });
+    return this.toUser(row);
+  }
 }

@@ -1,24 +1,55 @@
-import { Body, Controller, Get, HttpCode, Post, UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  ConflictException,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
+  ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { UserNotFound } from '../users/user.js';
-import { InvalidCredentials } from './auth.errors.js';
+import { EmailAlreadyUsed, EmailNotFromSchool, InvalidCredentials } from './auth.errors.js';
 import { AuthGuard, type JwtPayload } from './auth.guard.js';
 import { AuthService } from './auth.service.js';
 import { CurrentUser } from './current-user.decorator.js';
 import { AccessTokenDto } from './dto/access-token.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { MeDto } from './dto/me.dto.js';
+import { RegisterDto } from './dto/register.dto.js';
 
-/** Login and profile of the connected user. Translates the domain errors into HTTP statuses. */
+/**
+ * Registration, login and profile of the connected user. Translates the
+ * domain errors into HTTP statuses.
+ */
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
+
+  @Post('register')
+  @ApiOperation({ summary: 'Create a student account with the school email' })
+  @ApiCreatedResponse({ type: AccessTokenDto, description: 'Account created; a token valid for one hour' })
+  @ApiBadRequestResponse({ description: 'Invalid body, or an email outside the school domain' })
+  @ApiConflictResponse({ description: 'An account already uses this email' })
+  async register(@Body() dto: RegisterDto): Promise<AccessTokenDto> {
+    try {
+      return { access_token: await this.auth.register(dto) };
+    } catch (error) {
+      if (error instanceof EmailNotFromSchool) throw new BadRequestException(error.message);
+      if (error instanceof EmailAlreadyUsed) throw new ConflictException(error.message);
+      throw error;
+    }
+  }
 
   @Post('login')
   @HttpCode(200)

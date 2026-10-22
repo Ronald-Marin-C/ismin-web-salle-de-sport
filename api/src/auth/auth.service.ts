@@ -1,24 +1,58 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Prisma } from '../generated/prisma/client.js';
 import { UserNotFound, type User } from '../users/user.js';
 import { UsersService } from '../users/users.service.js';
-import { InvalidCredentials } from './auth.errors.js';
+import { EmailAlreadyUsed, EmailNotFromSchool, InvalidCredentials } from './auth.errors.js';
 import type { JwtPayload } from './auth.guard.js';
 import type { MeDto } from './dto/me.dto.js';
-import { verifyPassword } from './password.js';
+import type { RegisterDto } from './dto/register.dto.js';
+import { hashPassword, verifyPassword } from './password.js';
 
 /** Emails are stored lowercase, so that `Alice@…` and `alice@…` are the same account. */
 function normalizeEmail(email: string): string {
   return email.toLowerCase();
 }
 
-/** Login and profile. Signs the tokens; knows nothing about HTTP. */
+/** Registration, login and profile. Signs the tokens; knows nothing about HTTP. */
 @Injectable()
 export class AuthService {
   constructor(
     private readonly users: UsersService,
     private readonly jwt: JwtService,
   ) {}
+
+  /**
+   * Creates a student account. The email must end with `@` and the
+   * `SCHOOL_EMAIL_DOMAIN` (default `castelmont.fr`).
+   *
+   * @returns An access token for the new account.
+   * @throws EmailNotFromSchool when the email belongs to another domain.
+   * @throws EmailAlreadyUsed when an account already uses this email, whatever its case.
+   */
+  async register(dto: RegisterDto): Promise<string> {
+    const email = normalizeEmail(dto.email);
+    const domain = process.env.SCHOOL_EMAIL_DOMAIN ?? 'castelmont.fr';
+    if (!email.endsWith(`@${domain}`)) throw new EmailNotFromSchool(domain);
+
+    let user: User;
+    try {
+      user = await this.users.createStudent({
+        email,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        passwordHash: hashPassword(dto.password),
+      });
+    } catch (error) {
+      // No lookup beforehand: the unique index on email decides, which also
+      // covers two registrations of the same email at the same instant.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new EmailAlreadyUsed(email);
+      }
+      throw error;
+    }
+    return this.signToken(user);
+  }
 
   /**
    * Checks the credentials of an account.
