@@ -18,7 +18,7 @@ export interface Auth {
 }
 
 /**
- * Given. A context shares a value with every component below its provider,
+ * A context shares a value with every component below its provider,
  * however deep, without passing it down as props through every level.
  */
 const AuthContext = createContext<Auth | null>(null);
@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   return <AuthContext value={{ token, user, login, logout }}>{children}</AuthContext>;
 };
 
-/** Given. The logged-in user, from any component under <AuthProvider>. */
+/** The logged-in user, from any component under <AuthProvider>. */
 export const useAuth = (): Auth => {
   const auth = useContext(AuthContext);
   if (!auth) {

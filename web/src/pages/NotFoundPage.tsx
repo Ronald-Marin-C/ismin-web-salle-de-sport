@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 
-/** Given, from TP8. The page of any URL that no route knows: the route `*`. */
+/** Fallback page for any URL that matches no route (`*`). */
 export const NotFoundPage = () => {
   return (
     <section className="page not-found">

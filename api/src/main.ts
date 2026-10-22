@@ -5,7 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
 
 /**
- * TP2 solution: the entry point.
+ * Entry point of the API: global validation, CORS and the Swagger UI.
  *
  * `whitelist` strips fields not declared in the DTO; `forbidNonWhitelisted`
  * goes further and rejects the request outright, so a client cannot sneak

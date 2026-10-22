@@ -7,7 +7,7 @@ import App from './App';
 import { AuthProvider, TOKEN_KEY } from './auth/AuthProvider';
 
 /**
- * Given. The helpers of the tests: read them, don't change them.
+ * Test helpers, shared by every test file.
  *
  * No browser, no API during the tests. The URL lives in a MemoryRouter
  * instead of the address bar, and `fetch` is replaced by a fake API.

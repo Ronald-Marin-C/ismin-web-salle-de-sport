@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { makeToken, renderApp } from './test-utils';
 
 /**
- * From TP8: one URL, one page, and links to go from one to the other. The
+ * Routing: one URL, one page, and links to go from one to the other. The
  * heading "Planning" tells which page is shown: only the planning has it.
  * The planning is for the logged-in only, hence the token.
  */

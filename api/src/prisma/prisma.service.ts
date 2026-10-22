@@ -3,11 +3,10 @@ import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { PrismaClient } from '../generated/prisma/client.js';
 
 /**
- * Given. Manages the database connection and exposes it to the whole
- * application through dependency injection.
+ * The Prisma client, connected to SQLite through the better-sqlite3 adapter
+ * and shared with the whole application through dependency injection.
  *
- * 💡 To see the SQL actually being executed, essential for step 7,
- *    uncomment the `log` option below and watch your terminal.
+ * @throws Error at startup when DATABASE_URL is not set.
  */
 @Injectable()
 export class PrismaService
@@ -18,10 +17,7 @@ export class PrismaService
     const url = process.env.DATABASE_URL;
     if (!url) throw new Error('DATABASE_URL is not set: cp .env.example .env');
 
-    super({
-      adapter: new PrismaBetterSqlite3({ url }),
-      // log: ['query'],
-    });
+    super({ adapter: new PrismaBetterSqlite3({ url }) });
   }
 
   async onModuleInit(): Promise<void> {

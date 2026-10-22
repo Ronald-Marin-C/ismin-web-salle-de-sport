@@ -6,7 +6,7 @@ import { fakeApi, makeToken, nestError } from '../test-utils';
 import { AuthProvider, TOKEN_KEY, useAuth } from './AuthProvider';
 
 /**
- * Given. Step 2. `renderHook` calls useAuth() inside an <AuthProvider>, as
+ * `renderHook` calls useAuth() inside an <AuthProvider>, as
  * any component of the app would, and gives what it returns.
  */
 const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>;

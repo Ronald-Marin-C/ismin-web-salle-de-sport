@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { TOKEN_KEY } from '../auth/AuthProvider';
 import { fakeApi, makeToken, nestError, pathOf, renderApp } from '../test-utils';
 
-/** Given. Step 3, the page and its route. */
+/** The login page and its route. */
 const token = makeToken({ username: 'alice' });
 
 async function logInAs(username: string, password: string) {
