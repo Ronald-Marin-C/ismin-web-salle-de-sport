@@ -16,10 +16,8 @@ export interface Auth {
   sessionEnded: boolean;
   /** Lets the ApiError through: 401 for wrong credentials. */
   login: (email: string, password: string) => Promise<void>;
-  /** Creates a student account and logs it in. Lets the ApiError through: 400 or 409. */
   register: (account: NewAccount) => Promise<void>;
   logout: () => void;
-  /** Logs out after the API refused the token. */
   endSession: () => void;
 }
 

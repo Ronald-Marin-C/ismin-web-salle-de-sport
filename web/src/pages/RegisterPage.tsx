@@ -6,7 +6,6 @@ import type { NewAccount } from '../types';
 
 const EMPTY_ACCOUNT: NewAccount = { firstName: '', lastName: '', email: '', password: '' };
 
-/** The page to create a student account, at /register. */
 export const RegisterPage = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
