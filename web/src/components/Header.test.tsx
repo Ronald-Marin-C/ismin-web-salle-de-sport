@@ -38,6 +38,36 @@ describe('Header', () => {
     expect(screen.getByRole('link', { name: 'Initiations' })).toHaveAttribute('href', '/referent/initiations');
   });
 
+  it('marks the link of the planning on the planning, and only that one', async () => {
+    renderApp('/', { token: makeToken() });
+    await screen.findByText('Alice Martin');
+
+    const planning = screen.getByRole('link', { name: 'Planning' });
+    expect(planning).toHaveClass('active');
+    expect(planning).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Mes créneaux' })).not.toHaveClass('active');
+  });
+
+  it('marks the link of my slots on my slots, and not the planning', async () => {
+    renderApp('/my-registrations', { token: makeToken() });
+    await screen.findByText('Alice Martin');
+
+    const mine = screen.getByRole('link', { name: 'Mes créneaux' });
+    expect(mine).toHaveClass('active');
+    expect(mine).toHaveAttribute('aria-current', 'page');
+    const planning = screen.getByRole('link', { name: 'Planning' });
+    expect(planning).not.toHaveClass('active');
+    expect(planning).not.toHaveAttribute('aria-current');
+  });
+
+  it('marks the link of the initiations on the initiations', async () => {
+    renderApp('/referent/initiations', { token: makeToken({ email: 'referent1@castelmont.fr', role: 'referent' }) });
+    await screen.findByText('Alice Martin');
+
+    expect(screen.getByRole('link', { name: 'Initiations' })).toHaveClass('active');
+    expect(screen.getByRole('link', { name: 'Planning' })).not.toHaveClass('active');
+  });
+
   it('shows the name of the logged-in user, and offers to log out', async () => {
     renderApp('/', { token: makeToken() });
 
