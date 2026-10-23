@@ -12,6 +12,32 @@ describe('Header', () => {
     expect(screen.queryByRole('button', { name: 'Se déconnecter' })).not.toBeInTheDocument();
   });
 
+  it('shows no link to the pages of the logged-in when logged out', () => {
+    renderApp('/');
+
+    expect(screen.queryByRole('link', { name: 'Planning' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Mes créneaux' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Initiations' })).not.toBeInTheDocument();
+  });
+
+  it('shows a student the planning and their slots, but not the initiations', async () => {
+    renderApp('/', { token: makeToken() });
+    await screen.findByText('Alice Martin');
+
+    expect(screen.getByRole('link', { name: 'Planning' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'Mes créneaux' })).toHaveAttribute('href', '/my-registrations');
+    expect(screen.queryByRole('link', { name: 'Initiations' })).not.toBeInTheDocument();
+  });
+
+  it('shows a referent the initiations too', async () => {
+    renderApp('/', { token: makeToken({ email: 'referent1@castelmont.fr', role: 'referent' }) });
+    await screen.findByText('Alice Martin');
+
+    expect(screen.getByRole('link', { name: 'Planning' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'Mes créneaux' })).toHaveAttribute('href', '/my-registrations');
+    expect(screen.getByRole('link', { name: 'Initiations' })).toHaveAttribute('href', '/referent/initiations');
+  });
+
   it('shows the name of the logged-in user, and offers to log out', async () => {
     renderApp('/', { token: makeToken() });
 
