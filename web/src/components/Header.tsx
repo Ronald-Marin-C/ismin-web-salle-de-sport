@@ -19,7 +19,10 @@ export const Header = () => {
       <nav className="app-nav" aria-label="Navigation principale">
         {user ? (
           <>
-            {me && <span className="app-user">{`${me.firstName} ${me.lastName}`}</span>}
+            <Link to="/">Planning</Link>
+            <Link to="/my-registrations">Mes créneaux</Link>
+            {user.role === 'referent' && <Link to="/referent/initiations">Initiations</Link>}
+            {me &&<span className="app-user">{`${me.firstName} ${me.lastName}`}</span>}
             <button className="link-button" type="button" onClick={logout}>
               Se déconnecter
             </button>
