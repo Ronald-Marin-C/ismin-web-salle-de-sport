@@ -4,7 +4,6 @@ import { makeToken } from '../test-utils';
 import { AuthProvider, TOKEN_KEY } from './AuthProvider';
 import { RequireReferent } from './RequireReferent';
 
-// No route uses it yet: the referent pages come later.
 function renderReferentPage(token: string) {
   localStorage.setItem(TOKEN_KEY, token);
   return render(
