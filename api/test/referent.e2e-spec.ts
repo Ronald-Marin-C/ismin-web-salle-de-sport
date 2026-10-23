@@ -189,10 +189,11 @@ describe('Referent API', () => {
       await searchUsers(referent.token).query({ search: 'a'.repeat(101) }).expect(400);
     });
 
-    it('refuses a repeated search parameter', async () => {
+    it('refuses a repeated search parameter, saying that the search must be a string', async () => {
       const referent = await connectReferent();
 
-      await searchUsers(referent.token).query('search=mart&search=dur').expect(400);
+      const response = await searchUsers(referent.token).query('search=mart&search=dur').expect(400);
+      expect(response.body.message).toContain('search must be a string');
     });
   });
 
