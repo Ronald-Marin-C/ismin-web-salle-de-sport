@@ -127,6 +127,21 @@ describe('Registrations API', () => {
       expect(second.body).toMatchObject({ status: 'waiting', position: 2 });
     });
 
+    it('counts the places and the waiting list of the booked slot only', async () => {
+      // Full slots on the same day and at the same hour, some with people waiting.
+      await fillSlot('2026-10-22', 18, 12, 1);
+      await fillSlot('2026-10-22', 19, 12);
+      await fillSlot('2026-10-23', 19, 12, 1);
+      const me = await connect('chloe.petit@castelmont.fr');
+
+      const waiting = await book(me.token, '2026-10-22', 19).expect(201);
+      expect(waiting.body).toMatchObject({ status: 'waiting', position: 1 });
+      const sameDay = await book(me.token, '2026-10-22', 20).expect(201);
+      expect(sameDay.body.status).toBe('confirmed');
+      const sameHour = await book(me.token, '2026-10-24', 18).expect(201);
+      expect(sameHour.body.status).toBe('confirmed');
+    });
+
     it('refuses the same slot twice', async () => {
       const me = await connect('chloe.petit@castelmont.fr');
       await book(me.token, '2026-10-22', 18).expect(201);
