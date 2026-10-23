@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { fakeApi, makeToken, nestError, pathOf, referent, referentToken, renderApp } from '../test-utils';
+import { fakeApi, makeSlot, makeToken, nestError, pathOf, referent, referentToken, renderApp } from '../test-utils';
 import type { Person, SlotRegistrations } from '../types';
 
 const token = referentToken();
@@ -25,6 +25,18 @@ const nobody: SlotRegistrations = { confirmed: [], waiting: [] };
 /** The fake API, with referent1 as the logged-in user. */
 function fakeReferentApi(routes: Parameters<typeof fakeApi>[0]): Request[] {
   return fakeApi({ 'GET /auth/me': () => Response.json(referent), ...routes });
+}
+
+const planning = [
+  makeSlot({ date: '2026-10-21', hour: 18 }),
+  makeSlot({ date: '2026-10-21', hour: 19 }),
+  makeSlot({ date: '2026-10-22', hour: 18 }),
+];
+
+/** From the planning, opens the list of the slot of the selected day at `hours`. */
+async function openPeopleOf(hours: string) {
+  const row = (await screen.findByText(hours)).closest('li')!;
+  await userEvent.click(within(row).getByRole('link', { name: 'Voir les inscrits' }));
 }
 
 const namesIn = (list: string) =>
@@ -110,6 +122,49 @@ describe('ReferentSlotPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Créneau introuvable.');
     expect(requests.map(pathOf)).toContain('/slots/a%2Fb/18/registrations');
+  });
+
+  it('encodes the hour too', async () => {
+    const requests = fakeReferentApi({
+      'GET /slots/2026-10-21/1%3F8/registrations': () => nestError(400, ['hour must be an integer number']),
+    });
+    renderApp('/referent/slots/2026-10-21/1%3F8', { token });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Créneau introuvable.');
+    expect(requests.map(pathOf)).toContain('/slots/2026-10-21/1%3F8/registrations');
+  });
+
+  it('never shows the people of the slot seen before, at another hour of the day', async () => {
+    fakeReferentApi({
+      'GET /slots': () => Response.json(planning),
+      'GET /slots/2026-10-21/18/registrations': () => Response.json(people),
+      'GET /slots/2026-10-21/19/registrations': () => new Promise<Response>(() => {}),
+    });
+    renderApp('/referent/slots/2026-10-21/18', { token });
+    await screen.findByText('Alice Martin');
+
+    await userEvent.click(screen.getByRole('link', { name: '← Retour au planning' }));
+    await openPeopleOf('19:00 – 20:00');
+
+    expect(screen.getByRole('status')).toHaveTextContent('Chargement…');
+    expect(screen.queryByText('Alice Martin')).not.toBeInTheDocument();
+  });
+
+  it('never shows the people of the slot seen before, at the same hour of another day', async () => {
+    fakeReferentApi({
+      'GET /slots': () => Response.json(planning),
+      'GET /slots/2026-10-21/18/registrations': () => Response.json(people),
+      'GET /slots/2026-10-22/18/registrations': () => new Promise<Response>(() => {}),
+    });
+    renderApp('/referent/slots/2026-10-21/18', { token });
+    await screen.findByText('Alice Martin');
+
+    await userEvent.click(screen.getByRole('link', { name: '← Retour au planning' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'jeu. 22/10' }));
+    await openPeopleOf('18:00 – 19:00');
+
+    expect(screen.getByRole('status')).toHaveTextContent('Chargement…');
+    expect(screen.queryByText('Alice Martin')).not.toBeInTheDocument();
   });
 
   it('says so when the people cannot be loaded', async () => {
