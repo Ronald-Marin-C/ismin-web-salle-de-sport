@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
 import App from './App';
 import { AuthProvider, TOKEN_KEY } from './auth/AuthProvider';
-import type { Me, Role, SlotView } from './types';
+import type { Me, Role, SlotView, Student } from './types';
 
 /** The default user of the tests: what `GET /auth/me` answers unless a test says otherwise. */
 export const alice: Me = {
@@ -25,6 +25,30 @@ export const bob: Me = {
   role: 'student',
   initiationValidated: false,
 };
+
+export const referent: Me = {
+  id: 'u3',
+  email: 'referent1@castelmont.fr',
+  firstName: 'Référent',
+  lastName: '1',
+  role: 'referent',
+  initiationValidated: true,
+};
+
+/** A token of referent1, for the referents' pages. */
+export const referentToken = () => makeToken({ email: referent.email, role: 'referent' });
+
+/** Bob as GET /users finds him, initiation not validated, unless `changes` says otherwise. */
+export function makeStudent(changes: Partial<Student> = {}): Student {
+  return {
+    id: 'u2',
+    firstName: 'Bob',
+    lastName: 'Durand',
+    email: 'bob.durand@castelmont.fr',
+    initiationValidated: false,
+    ...changes,
+  };
+}
 
 /** A free slot nobody booked, on Wednesday 21 October 2026 at 11:00 unless `changes` says otherwise. */
 export function makeSlot(changes: Partial<SlotView> = {}): SlotView {

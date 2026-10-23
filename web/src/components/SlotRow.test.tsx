@@ -1,12 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { makeSlot } from '../test-utils';
+import { makeSlot, renderWithRouter } from '../test-utils';
 import type { SlotView } from '../types';
 import { SlotRow } from './SlotRow';
 
-function renderRow(slot: SlotView, { canBook = true, onBook = () => {} } = {}) {
-  return render(<SlotRow slot={slot} canBook={canBook} onBook={onBook} />);
+function renderRow(slot: SlotView, { canBook = true, isReferent = false, onBook = () => {} } = {}) {
+  return renderWithRouter(<SlotRow slot={slot} canBook={canBook} isReferent={isReferent} onBook={onBook} />);
 }
 
 describe('SlotRow', () => {
@@ -77,5 +77,26 @@ describe('SlotRow', () => {
     await userEvent.click(screen.getByRole('button', { name: "S'inscrire" }));
 
     expect(onBook).toHaveBeenCalledOnce();
+  });
+
+  it('offers a referent to see who registered to the slot', () => {
+    renderRow(makeSlot({ date: '2026-10-21', hour: 18 }), { isReferent: true });
+
+    expect(screen.getByRole('link', { name: 'Voir les inscrits' })).toHaveAttribute(
+      'href',
+      '/referent/slots/2026-10-21/18',
+    );
+  });
+
+  it('offers it for a slot that has started too', () => {
+    renderRow(makeSlot({ isPast: true }), { isReferent: true });
+
+    expect(screen.getByRole('link', { name: 'Voir les inscrits' })).toBeInTheDocument();
+  });
+
+  it('does not offer it to a student', () => {
+    renderRow(makeSlot());
+
+    expect(screen.queryByRole('link', { name: 'Voir les inscrits' })).not.toBeInTheDocument();
   });
 });

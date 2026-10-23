@@ -37,6 +37,35 @@ export interface SlotView {
   myRegistrationId?: string;
 }
 
+/** A student of GET /users, as the referents see them. */
+export interface Student {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  initiationValidated: boolean;
+  /** ISO 8601, UTC. Absent until a referent validates the initiation. */
+  initiationValidatedAt?: string;
+}
+
+/** Someone registered to a slot, as the referents see them. */
+export interface Person {
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export interface WaitingPerson extends Person {
+  /** 1 for the first in the waiting list. */
+  position: number;
+}
+
+/** GET /slots/:date/:hour/registrations: both lists in order of arrival. */
+export interface SlotRegistrations {
+  confirmed: Person[];
+  waiting: WaitingPerson[];
+}
+
 /** A registration of GET /registrations/me. */
 export interface Registration {
   id: string;

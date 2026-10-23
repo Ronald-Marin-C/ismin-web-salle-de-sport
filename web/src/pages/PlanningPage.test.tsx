@@ -2,7 +2,18 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { TOKEN_KEY } from '../auth/AuthProvider';
-import { alice, bob, fakeApi, makeSlot, makeToken, nestError, pathOf, renderApp } from '../test-utils';
+import {
+  alice,
+  bob,
+  fakeApi,
+  makeSlot,
+  makeToken,
+  nestError,
+  pathOf,
+  referent,
+  referentToken,
+  renderApp,
+} from '../test-utils';
 import type { SlotView } from '../types';
 
 const DATES = ['2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24', '2026-10-25', '2026-10-26', '2026-10-27'];
@@ -309,5 +320,34 @@ describe('PlanningPage, booking', () => {
     expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
     expect(screen.getByText('Votre session a pris fin. Reconnectez-vous.')).toBeInTheDocument();
     expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+  });
+});
+
+describe('PlanningPage, the referents', () => {
+  it('lets a referent open the list of who registered to a slot', async () => {
+    fakeApi({
+      'GET /auth/me': () => Response.json(referent),
+      'GET /slots': () => Response.json(week()),
+      'GET /slots/2026-10-21/18/registrations': () =>
+        Response.json({
+          confirmed: [{ firstName: 'Alice', lastName: 'Martin', email: 'alice.martin@castelmont.fr' }],
+          waiting: [],
+        }),
+    });
+    renderApp('/', { token: referentToken() });
+    await screen.findByText('18:00 – 19:00');
+
+    await userEvent.click(within(rowOf('18:00 – 19:00')).getByRole('link', { name: 'Voir les inscrits' }));
+
+    expect(await screen.findByRole('heading', { name: 'mer. 21/10 · 18:00 – 19:00' })).toBeInTheDocument();
+    expect(screen.getByText('Alice Martin')).toBeInTheDocument();
+  });
+
+  it('shows a student no link to who registered', async () => {
+    fakeApi({ 'GET /slots': () => Response.json(week()) });
+    renderApp('/', { token });
+
+    await screen.findByText('18:00 – 19:00');
+    expect(screen.queryByRole('link', { name: 'Voir les inscrits' })).not.toBeInTheDocument();
   });
 });
