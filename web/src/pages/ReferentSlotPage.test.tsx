@@ -103,10 +103,12 @@ describe('ReferentSlotPage', () => {
   });
 
   it('encodes the date and the hour in the path of the request', async () => {
-    const requests = fakeReferentApi({ 'GET /slots/a%2Fb/18/registrations': () => Response.json(nobody) });
+    const requests = fakeReferentApi({
+      'GET /slots/a%2Fb/18/registrations': () => nestError(400, ['date must match /^\\d{4}-\\d{2}-\\d{2}$/ regular expression']),
+    });
     renderApp('/referent/slots/a%2Fb/18', { token });
 
-    await screen.findByText('Aucun inscrit.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Créneau introuvable.');
     expect(requests.map(pathOf)).toContain('/slots/a%2Fb/18/registrations');
   });
 
