@@ -1,10 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { API_URL, ApiError, login } from './api';
+import { API_URL, ApiError, fetchMe, login } from './api';
+import { alice } from './test-utils';
 
-/**
- * No API is running during the tests: `fetch` is replaced by a fake that
- * answers what each test decides.
- */
 const fetchMock = vi.fn<typeof fetch>();
 
 beforeEach(() => {
@@ -35,28 +32,28 @@ function nestError(status: number, message: string | string[]): Response {
 }
 
 describe('login', () => {
-  it('POSTs the username and the password as JSON to /auth/login', async () => {
+  it('POSTs the email and the password as JSON to /auth/login', async () => {
     fetchMock.mockResolvedValue(Response.json({ access_token: 'the-token' }));
 
-    await login('alice', 'secret');
+    await login('alice.martin@castelmont.fr', 'salle-de-sport');
 
     const request = sentRequest();
     expect(request.url).toBe(`${API_URL}/auth/login`);
     expect(request.method).toBe('POST');
     expect(request.headers.get('Content-Type')).toContain('application/json');
-    await expect(request.json()).resolves.toEqual({ username: 'alice', password: 'secret' });
+    await expect(request.json()).resolves.toEqual({ email: 'alice.martin@castelmont.fr', password: 'salle-de-sport' });
   });
 
   it('returns the access_token of the answer', async () => {
     fetchMock.mockResolvedValue(Response.json({ access_token: 'the-token' }));
 
-    await expect(login('alice', 'secret')).resolves.toBe('the-token');
+    await expect(login('alice.martin@castelmont.fr', 'salle-de-sport')).resolves.toBe('the-token');
   });
 
   it('throws an ApiError whose status is 401 for a wrong password', async () => {
-    fetchMock.mockResolvedValue(nestError(401, 'Wrong username or password'));
+    fetchMock.mockResolvedValue(nestError(401, 'Email ou mot de passe incorrect.'));
 
-    const error = await rejection(login('alice', 'wrong'));
+    const error = await rejection(login('alice.martin@castelmont.fr', 'wrong'));
     expect(error).toBeInstanceOf(ApiError);
     expect(error).toMatchObject({ status: 401 });
   });
@@ -64,18 +61,45 @@ describe('login', () => {
   it('throws an ApiError when the API answers with an error that is not JSON', async () => {
     fetchMock.mockResolvedValue(new Response('Internal Server Error', { status: 500 }));
 
-    const error = await rejection(login('alice', 'secret'));
+    const error = await rejection(login('alice.martin@castelmont.fr', 'salle-de-sport'));
     expect(error).toBeInstanceOf(ApiError);
     expect(error).toMatchObject({ status: 500, details: [] });
   });
 
   it('keeps what the API explained about a 400 in `details`', async () => {
-    fetchMock.mockResolvedValue(nestError(400, ['username should not be empty', 'password should not be empty']));
+    fetchMock.mockResolvedValue(nestError(400, ['email must be an email', 'password should not be empty']));
 
     const error = await rejection(login('', ''));
     expect(error).toMatchObject({
       status: 400,
-      details: ['username should not be empty', 'password should not be empty'],
+      details: ['email must be an email', 'password should not be empty'],
     });
+  });
+});
+
+describe('fetchMe', () => {
+  it('GETs /auth/me with the token in the Authorization header', async () => {
+    fetchMock.mockResolvedValue(Response.json(alice));
+
+    await fetchMe('the-token');
+
+    const request = sentRequest();
+    expect(request.url).toBe(`${API_URL}/auth/me`);
+    expect(request.method).toBe('GET');
+    expect(request.headers.get('Authorization')).toBe('Bearer the-token');
+  });
+
+  it('returns the profile of the answer', async () => {
+    fetchMock.mockResolvedValue(Response.json(alice));
+
+    await expect(fetchMe('the-token')).resolves.toEqual(alice);
+  });
+
+  it('throws an ApiError whose status is 401 when the API refuses the token', async () => {
+    fetchMock.mockResolvedValue(nestError(401, 'Compte introuvable.'));
+
+    const error = await rejection(fetchMe('the-token'));
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 401 });
   });
 });

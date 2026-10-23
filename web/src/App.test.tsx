@@ -8,7 +8,7 @@ import { makeToken, renderApp } from './test-utils';
  * heading "Planning" tells which page is shown: only the planning has it.
  * The planning is for the logged-in only, hence the token.
  */
-const token = makeToken({ username: 'alice' });
+const token = makeToken();
 
 function planningIsShown() {
   return screen.queryByRole('heading', { name: 'Planning' }) !== null;
