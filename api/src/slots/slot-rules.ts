@@ -19,6 +19,9 @@ export const DAYS_AHEAD = 7;
 /** Slots one user may hold on the same day, waiting lists included. */
 export const MAX_SLOTS_PER_DAY = 2;
 
+/** Registrations can be cancelled until this many minutes before their slot. */
+export const CANCEL_DEADLINE_MINUTES = 60;
+
 /**
  * Formats a date as `YYYY-MM-DD`, in local time.
  *
@@ -67,4 +70,13 @@ export function isSlotInWindow(date: string, hour: number, now: Date): boolean {
 /** Whether a slot has begun at `now`, from its first second on. */
 export function hasStarted(date: string, hour: number, now: Date): boolean {
   return now.getTime() >= slotStart(date, hour).getTime();
+}
+
+/**
+ * Time left before a slot begins.
+ *
+ * @returns Minutes, seconds included as a fraction; negative once the slot has started.
+ */
+export function minutesBefore(date: string, hour: number, now: Date): number {
+  return (slotStart(date, hour).getTime() - now.getTime()) / 60_000;
 }

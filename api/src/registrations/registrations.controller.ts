@@ -1,8 +1,12 @@
 import {
   ConflictException,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
   Param,
   Post,
   UnprocessableEntityException,
@@ -14,8 +18,11 @@ import {
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
@@ -25,16 +32,19 @@ import { RegistrationDto } from './dto/registration.dto.js';
 import { SlotParamsDto } from './dto/slot-params.dto.js';
 import {
   AlreadyRegistered,
+  CancellationTooLate,
   DailyLimitReached,
   InitiationRequired,
+  NotYourRegistration,
+  RegistrationNotFound,
   SlotNotBookable,
   type Registration,
 } from './registration.js';
 import { RegistrationsService } from './registrations.service.js';
 
 /**
- * Booking the slots, and the list of one's own registrations. Translates the
- * domain errors into HTTP statuses. No common prefix: the routes are spelled out in full.
+ * Booking and cancelling the slots, and the list of one's own registrations. Translates
+ * the domain errors into HTTP statuses. No common prefix: the routes are spelled out in full.
  */
 @Controller()
 export class RegistrationsController {
@@ -85,5 +95,35 @@ export class RegistrationsController {
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   findMine(@CurrentUser() user: JwtPayload): Promise<Registration[]> {
     return this.registrations.findMine(user.sub, new Date());
+  }
+
+  /**
+   * Cancels one of the connected user's registrations; a place it held goes to the first in
+   * the waiting list.
+   *
+   * @throws NotFoundException (404) when no registration has this id.
+   * @throws ForbiddenException (403) when the registration belongs to another user.
+   * @throws UnprocessableEntityException (422) less than an hour before the slot.
+   */
+  @Delete('registrations/:id')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cancel my registration; a place it held goes to the first in the waiting list' })
+  @ApiParam({ name: 'id', description: 'Id of the registration' })
+  @ApiNoContentResponse({ description: 'Cancelled' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'The registration belongs to another user' })
+  @ApiNotFoundResponse({ description: 'No registration has this id' })
+  @ApiUnprocessableEntityResponse({ description: 'Less than an hour before the slot' })
+  async cancel(@CurrentUser() user: JwtPayload, @Param('id') id: string): Promise<void> {
+    try {
+      await this.registrations.cancel(user.sub, id, new Date());
+    } catch (error) {
+      if (error instanceof RegistrationNotFound) throw new NotFoundException(error.message);
+      if (error instanceof NotYourRegistration) throw new ForbiddenException(error.message);
+      if (error instanceof CancellationTooLate) throw new UnprocessableEntityException(error.message);
+      throw error;
+    }
   }
 }
