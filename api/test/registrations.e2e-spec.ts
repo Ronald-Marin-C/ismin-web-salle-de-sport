@@ -401,6 +401,8 @@ describe('Registrations API', () => {
     });
 
     it('allows cancelling until one hour before the slot, to the second', async () => {
+      // Connected at 12:30: a token signed at 10:30 would have expired by 13:00.
+      vi.setSystemTime(new Date('2026-10-21T12:30:00'));
       const me = await connect('chloe.petit@castelmont.fr');
       const booked = await book(me.token, '2026-10-21', 14).expect(201);
 
@@ -411,6 +413,8 @@ describe('Registrations API', () => {
     it.each(['confirmed', 'waiting'] as const)(
       'refuses to cancel a %s registration less than one hour before the slot, and keeps it',
       async (status) => {
+        // Connected at 12:30: a token signed at 10:30 would have expired by 13:00.
+        vi.setSystemTime(new Date('2026-10-21T12:30:00'));
         const me = await connect('chloe.petit@castelmont.fr');
         const mine = await addRegistration(me.id, '2026-10-21', 14, status, '2026-10-20T09:00:00');
 
