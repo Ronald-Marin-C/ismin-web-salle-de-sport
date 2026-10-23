@@ -67,3 +67,12 @@ export async function fetchSlots(token: string): Promise<SlotView[]> {
   await throwIfNotOk(res);
   return (await res.json()) as SlotView[];
 }
+
+/** A place in the slot while there is one, otherwise a place in its waiting list. */
+export async function bookSlot(date: string, hour: number, token: string): Promise<void> {
+  const res = await fetch(`${API_URL}/slots/${date}/${hour}/registrations`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await throwIfNotOk(res);
+}
