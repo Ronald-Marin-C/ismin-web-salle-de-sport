@@ -10,10 +10,15 @@ const INITIATION_REQUIRED = "Votre initiation n'a pas encore été validée par 
 const SLOT_NOT_BOOKABLE = "Ce créneau n'est plus disponible.";
 const ALREADY_REGISTERED = 'Vous êtes déjà inscrit à ce créneau.';
 const DAILY_LIMIT_REACHED = "Deux créneaux par jour maximum, liste d'attente comprise.";
+const REGISTRATION_NOT_FOUND = 'Inscription introuvable.';
+const NOT_YOUR_REGISTRATION = 'Cette inscription ne vous appartient pas.';
+const CANCELLATION_TOO_LATE = "Désinscription possible jusqu'à une heure avant le créneau.";
+
+type Slot = Record<string, unknown> & { date: string; hour: number };
 
 /**
- * Booking the slots and the waiting list. The clock is fixed on
- * Wednesday 21 October 2026, 10:30, Paris time: the 10:00 slot has started.
+ * Booking and cancelling the slots, and the waiting list. The clock is fixed
+ * on Wednesday 21 October 2026, 10:30, Paris time: the 10:00 slot has started.
  */
 describe('Registrations API', () => {
   let app: INestApplication;
@@ -77,6 +82,21 @@ describe('Registrations API', () => {
         },
       });
     }
+  }
+
+  function myRegistrations(token: string) {
+    return request(app.getHttpServer()).get('/registrations/me').set('Authorization', `Bearer ${token}`);
+  }
+
+  /** Inserts a registration straight into the database; `createdAt` sets its place in the waiting list. */
+  function addRegistration(
+    userId: string,
+    date: string,
+    hour: number,
+    status: 'confirmed' | 'waiting',
+    createdAt: string,
+  ) {
+    return prisma.registration.create({ data: { userId, date, hour, status, createdAt: new Date(createdAt) } });
   }
 
   describe('POST /slots/:date/:hour/registrations', () => {
@@ -237,21 +257,6 @@ describe('Registrations API', () => {
   });
 
   describe('GET /registrations/me', () => {
-    function myRegistrations(token: string) {
-      return request(app.getHttpServer()).get('/registrations/me').set('Authorization', `Bearer ${token}`);
-    }
-
-    /** Inserts a registration straight into the database; `createdAt` sets its place in the waiting list. */
-    function addRegistration(
-      userId: string,
-      date: string,
-      hour: number,
-      status: 'confirmed' | 'waiting',
-      createdAt: string,
-    ) {
-      return prisma.registration.create({ data: { userId, date, hour, status, createdAt: new Date(createdAt) } });
-    }
-
     it('answers 401 without a token', async () => {
       await request(app.getHttpServer()).get('/registrations/me').expect(401);
     });
@@ -293,6 +298,166 @@ describe('Registrations API', () => {
       expect(response.body).toEqual([
         { id: current.id, date: '2026-10-21', hour: 10, status: 'confirmed', startsAt: '2026-10-21T08:00:00.000Z' },
       ]);
+    });
+  });
+
+  describe('DELETE /registrations/:id', () => {
+    function cancel(token: string, id: string) {
+      return request(app.getHttpServer()).delete(`/registrations/${id}`).set('Authorization', `Bearer ${token}`);
+    }
+
+    /** A slot as `GET /slots` shows it to the user. */
+    async function slotOf(token: string, date: string, hour: number): Promise<Slot | undefined> {
+      const response = await request(app.getHttpServer())
+        .get('/slots')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      return (response.body as Slot[]).find((slot) => slot.date === date && slot.hour === hour);
+    }
+
+    function findRegistration(id: string) {
+      return prisma.registration.findUnique({ where: { id } });
+    }
+
+    it('answers 401 without a token', async () => {
+      await request(app.getHttpServer()).delete('/registrations/any-id').expect(401);
+    });
+
+    it('gives the place of a confirmed student to the first in the waiting list', async () => {
+      const me = await connect('chloe.petit@castelmont.fr');
+      const first = await connect('first@castelmont.fr');
+      const second = await connect('second@castelmont.fr');
+      await fillSlot('2026-10-22', 18, 11);
+      const mine = await addRegistration(me.id, '2026-10-22', 18, 'confirmed', '2026-10-20T09:00:00');
+      // Inserted out of order: the waiting list follows the time of registration.
+      await addRegistration(second.id, '2026-10-22', 18, 'waiting', '2026-10-20T09:20:00');
+      const firstInLine = await addRegistration(first.id, '2026-10-22', 18, 'waiting', '2026-10-20T09:10:00');
+
+      await cancel(me.token, mine.id).expect(204);
+      expect(await findRegistration(mine.id)).toBeNull();
+      expect(await findRegistration(firstInLine.id)).toMatchObject({ status: 'confirmed' });
+      expect(await slotOf(second.token, '2026-10-22', 18)).toMatchObject({
+        remaining: 0,
+        waitingCount: 1,
+        myStatus: 'waiting',
+        myPosition: 1,
+      });
+    });
+
+    it('promotes someone waiting for the cancelled slot only', async () => {
+      // Waiting since before anyone in the cancelled slot: the same day at another hour, the same hour another day.
+      await fillSlot('2026-10-22', 19, 12, 1);
+      await fillSlot('2026-10-23', 18, 12, 1);
+      const me = await connect('chloe.petit@castelmont.fr');
+      const next = await connect('next@castelmont.fr');
+      await fillSlot('2026-10-22', 18, 11);
+      const mine = await addRegistration(me.id, '2026-10-22', 18, 'confirmed', '2026-10-20T09:00:00');
+      const waiting = await addRegistration(next.id, '2026-10-22', 18, 'waiting', '2026-10-20T09:10:00');
+
+      await cancel(me.token, mine.id).expect(204);
+      expect(await findRegistration(waiting.id)).toMatchObject({ status: 'confirmed' });
+      expect(await prisma.registration.count({ where: { status: 'waiting' } })).toBe(2);
+    });
+
+    it('promotes nobody when a student leaves the waiting list, and moves up those behind', async () => {
+      await fillSlot('2026-10-22', 18, 12);
+      const me = await connect('chloe.petit@castelmont.fr');
+      const behind = await connect('behind@castelmont.fr');
+      const mine = await addRegistration(me.id, '2026-10-22', 18, 'waiting', '2026-10-20T09:00:00');
+      await addRegistration(behind.id, '2026-10-22', 18, 'waiting', '2026-10-20T09:10:00');
+
+      await cancel(me.token, mine.id).expect(204);
+      expect(await findRegistration(mine.id)).toBeNull();
+      expect(await slotOf(behind.token, '2026-10-22', 18)).toMatchObject({
+        remaining: 0,
+        waitingCount: 1,
+        myStatus: 'waiting',
+        myPosition: 1,
+      });
+    });
+
+    it('frees the place when nobody is waiting', async () => {
+      const me = await connect('chloe.petit@castelmont.fr');
+      const booked = await book(me.token, '2026-10-22', 18).expect(201);
+
+      await cancel(me.token, booked.body.id).expect(204);
+      const slot = await slotOf(me.token, '2026-10-22', 18);
+      expect(slot).toMatchObject({ remaining: 12, waitingCount: 0 });
+      expect(slot).not.toHaveProperty('myStatus');
+    });
+
+    it('shows the promoted student their confirmed place in GET /registrations/me', async () => {
+      await fillSlot('2026-10-22', 18, 11);
+      const me = await connect('chloe.petit@castelmont.fr');
+      const next = await connect('next@castelmont.fr');
+      const mine = await addRegistration(me.id, '2026-10-22', 18, 'confirmed', '2026-10-20T09:00:00');
+      const waiting = await addRegistration(next.id, '2026-10-22', 18, 'waiting', '2026-10-20T09:10:00');
+
+      await cancel(me.token, mine.id).expect(204);
+      const response = await myRegistrations(next.token).expect(200);
+      expect(response.body).toEqual([
+        { id: waiting.id, date: '2026-10-22', hour: 18, status: 'confirmed', startsAt: '2026-10-22T16:00:00.000Z' },
+      ]);
+    });
+
+    it('allows cancelling until one hour before the slot, to the second', async () => {
+      const me = await connect('chloe.petit@castelmont.fr');
+      const booked = await book(me.token, '2026-10-21', 14).expect(201);
+
+      vi.setSystemTime(new Date('2026-10-21T13:00:00'));
+      await cancel(me.token, booked.body.id).expect(204);
+    });
+
+    it.each(['confirmed', 'waiting'] as const)(
+      'refuses to cancel a %s registration less than one hour before the slot, and keeps it',
+      async (status) => {
+        const me = await connect('chloe.petit@castelmont.fr');
+        const mine = await addRegistration(me.id, '2026-10-21', 14, status, '2026-10-20T09:00:00');
+
+        vi.setSystemTime(new Date('2026-10-21T13:00:01'));
+        const response = await cancel(me.token, mine.id).expect(422);
+        expect(response.body.message).toBe(CANCELLATION_TOO_LATE);
+        expect(await findRegistration(mine.id)).not.toBeNull();
+      },
+    );
+
+    it("refuses to cancel someone else's registration, and keeps it", async () => {
+      const owner = await connect('bob.durand@castelmont.fr');
+      const me = await connect('chloe.petit@castelmont.fr');
+      const theirs = await book(owner.token, '2026-10-22', 18).expect(201);
+
+      const response = await cancel(me.token, theirs.body.id).expect(403);
+      expect(response.body.message).toBe(NOT_YOUR_REGISTRATION);
+      expect(await findRegistration(theirs.body.id)).not.toBeNull();
+    });
+
+    it("answers 403 rather than 422 for someone else's registration too late to cancel", async () => {
+      const owner = await connect('bob.durand@castelmont.fr');
+      const me = await connect('chloe.petit@castelmont.fr');
+      const theirs = await book(owner.token, '2026-10-21', 11).expect(201);
+
+      const response = await cancel(me.token, theirs.body.id).expect(403);
+      expect(response.body.message).toBe(NOT_YOUR_REGISTRATION);
+    });
+
+    it('answers 404 for a registration already cancelled', async () => {
+      const me = await connect('chloe.petit@castelmont.fr');
+      const booked = await book(me.token, '2026-10-22', 18).expect(201);
+      await cancel(me.token, booked.body.id).expect(204);
+
+      const response = await cancel(me.token, booked.body.id).expect(404);
+      expect(response.body.message).toBe(REGISTRATION_NOT_FOUND);
+    });
+
+    it('lets the student book the slot again, which counts towards the daily limit again', async () => {
+      const me = await connect('chloe.petit@castelmont.fr');
+      const booked = await book(me.token, '2026-10-22', 18).expect(201);
+      await book(me.token, '2026-10-22', 19).expect(201);
+
+      await cancel(me.token, booked.body.id).expect(204);
+      await book(me.token, '2026-10-22', 18).expect(201);
+      const third = await book(me.token, '2026-10-22', 20).expect(422);
+      expect(third.body.message).toBe(DAILY_LIMIT_REACHED);
     });
   });
 });
