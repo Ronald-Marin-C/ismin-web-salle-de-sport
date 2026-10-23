@@ -235,4 +235,64 @@ describe('Registrations API', () => {
       expect(await prisma.registration.count({ where: { date: '2026-10-22', hour: 18, status: 'confirmed' } })).toBe(12);
     });
   });
+
+  describe('GET /registrations/me', () => {
+    function myRegistrations(token: string) {
+      return request(app.getHttpServer()).get('/registrations/me').set('Authorization', `Bearer ${token}`);
+    }
+
+    /** Inserts a registration straight into the database; `createdAt` sets its place in the waiting list. */
+    function addRegistration(
+      userId: string,
+      date: string,
+      hour: number,
+      status: 'confirmed' | 'waiting',
+      createdAt: string,
+    ) {
+      return prisma.registration.create({ data: { userId, date, hour, status, createdAt: new Date(createdAt) } });
+    }
+
+    it('answers 401 without a token', async () => {
+      await request(app.getHttpServer()).get('/registrations/me').expect(401);
+    });
+
+    it("lists the user's own registrations by date and hour, with their place in the waiting list", async () => {
+      const me = await connect('chloe.petit@castelmont.fr');
+      const other = await createUser(prisma, { email: 'bob.durand@castelmont.fr', initiated: true });
+      // A full slot: one person waits since 08:12, before me; another since 08:40, inserted first.
+      await fillSlot('2026-10-22', 19, 12, 1);
+      await addRegistration(other.id, '2026-10-22', 19, 'waiting', '2026-10-20T08:40:00');
+      // Inserted out of order: the list follows the date, then the hour.
+      const later = await addRegistration(me.id, '2026-10-23', 18, 'confirmed', '2026-10-20T08:20:00');
+      const waiting = await addRegistration(me.id, '2026-10-22', 19, 'waiting', '2026-10-20T08:30:00');
+      const morning = await addRegistration(me.id, '2026-10-22', 7, 'confirmed', '2026-10-20T08:50:00');
+      await addRegistration(other.id, '2026-10-24', 18, 'confirmed', '2026-10-20T08:00:00');
+
+      const response = await myRegistrations(me.token).expect(200);
+      expect(response.body).toEqual([
+        { id: morning.id, date: '2026-10-22', hour: 7, status: 'confirmed', startsAt: '2026-10-22T05:00:00.000Z' },
+        {
+          id: waiting.id,
+          date: '2026-10-22',
+          hour: 19,
+          status: 'waiting',
+          position: 2,
+          startsAt: '2026-10-22T17:00:00.000Z',
+        },
+        { id: later.id, date: '2026-10-23', hour: 18, status: 'confirmed', startsAt: '2026-10-23T16:00:00.000Z' },
+      ]);
+    });
+
+    it('leaves out the slots that are over, and keeps the one in progress', async () => {
+      const me = await connect('chloe.petit@castelmont.fr');
+      await addRegistration(me.id, '2026-10-20', 18, 'confirmed', '2026-10-19T08:00:00');
+      await addRegistration(me.id, '2026-10-21', 9, 'confirmed', '2026-10-20T08:00:00');
+      const current = await addRegistration(me.id, '2026-10-21', 10, 'confirmed', '2026-10-20T08:01:00');
+
+      const response = await myRegistrations(me.token).expect(200);
+      expect(response.body).toEqual([
+        { id: current.id, date: '2026-10-21', hour: 10, status: 'confirmed', startsAt: '2026-10-21T08:00:00.000Z' },
+      ]);
+    });
+  });
 });
