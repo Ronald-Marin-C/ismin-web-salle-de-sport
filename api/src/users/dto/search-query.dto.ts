@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, MaxLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 /** The query of `GET /users`. */
 export class SearchQueryDto {
@@ -9,7 +9,7 @@ export class SearchQueryDto {
     example: 'mart',
   })
   @IsOptional()
-  // Also refuses anything but a string, such as a parameter given twice.
+  @IsString()
   @MaxLength(100)
   search?: string;
 }
