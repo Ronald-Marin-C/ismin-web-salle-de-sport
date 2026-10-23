@@ -82,7 +82,7 @@ a {
   text-decoration: underline;
 }
 
-/* The link of the current page, when it is a <NavLink>: "Pour aller plus loin". */
+/* The link of the current page: <NavLink> gives it the class "active". */
 .app-nav a.active {
   color: var(--text);
   font-weight: 600;
