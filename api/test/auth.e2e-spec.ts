@@ -87,11 +87,22 @@ describe('/auth API', () => {
       },
     );
 
+    it('explains in French that the email must belong to the school', async () => {
+      const response = await register({ ...chloe, email: 'chloe.petit@gmail.com' }).expect(400);
+      expect(response.body.message).toBe("Utilisez votre email de l'école (@castelmont.fr).");
+    });
+
     it('answers 409 when the email is already used, whatever its case', async () => {
       await register(chloe).expect(201);
       await register(chloe).expect(409);
       await register({ ...chloe, email: 'CHLOE.PETIT@castelmont.fr' }).expect(409);
       expect(await prisma.user.count()).toBe(1);
+    });
+
+    it('explains in French that the email is already used', async () => {
+      await register(chloe).expect(201);
+      const response = await register(chloe).expect(409);
+      expect(response.body.message).toBe('Cet email est déjà utilisé.');
     });
 
     it('answers 400 for a password of 7 characters', async () => {
@@ -138,6 +149,11 @@ describe('/auth API', () => {
       const wrongPassword = await login({ email: 'alice.martin@castelmont.fr', password: 'wrong-password' }).expect(401);
       const unknownEmail = await login({ email: 'nobody@castelmont.fr', password: TEST_PASSWORD }).expect(401);
       expect(unknownEmail.body.message).toBe(wrongPassword.body.message);
+    });
+
+    it('explains in French that the email or the password is wrong', async () => {
+      const response = await login({ email: 'alice.martin@castelmont.fr', password: 'wrong-password' }).expect(401);
+      expect(response.body.message).toBe('Email ou mot de passe incorrect.');
     });
 
     it.each([

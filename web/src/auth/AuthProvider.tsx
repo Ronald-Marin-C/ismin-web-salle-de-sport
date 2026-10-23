@@ -1,50 +1,51 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import * as api from '../api';
+import type { NewAccount } from '../types';
 import { decodePayload, type JwtPayload } from './jwt';
 
-/** Where the token is kept: DevTools → Application → Local Storage, under this key. */
+/** The localStorage key of the token. */
 export const TOKEN_KEY = 'token';
 
-/** What every component under <AuthProvider> can ask for, with useAuth(). */
+/** What useAuth() returns. */
 export interface Auth {
-  /** The raw token, for the Authorization header. null: logged out. */
+  /** null: logged out. */
   token: string | null;
-  /** Who is logged in, read from the payload of the token. null: logged out. */
+  /** Read from the token, for display only. null: logged out. */
   user: JwtPayload | null;
-  /** Asks the API for a token and keeps it. Lets the ApiError through: 401 for a wrong password. */
-  login: (username: string, password: string) => Promise<void>;
-  /** Forgets the token. */
+  /** True once the API refused the token, until the next login: the login page says so. */
+  sessionEnded: boolean;
+  /** Lets the ApiError through: 401 for wrong credentials. */
+  login: (email: string, password: string) => Promise<void>;
+  register: (account: NewAccount) => Promise<void>;
   logout: () => void;
+  endSession: () => void;
 }
 
-/**
- * A context shares a value with every component below its provider,
- * however deep, without passing it down as props through every level.
- */
 const AuthContext = createContext<Auth | null>(null);
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-/**
- * The logged-in user, for the whole app: main.tsx puts it around <App />.
- *
- * The token lives in two places. In a state, so that React redraws the page
- * when it changes. In localStorage, so that it survives a reload: the state
- * starts from what localStorage holds.
- */
+/** The logged-in user. The token is kept in localStorage so that it survives a reload. */
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
+  const [sessionEnded, setSessionEnded] = useState(false);
 
-  // Computed at each render from the token, like the total of a list: nothing to keep in step.
   const user = token ? decodePayload(token) : null;
 
-  const login = async (username: string, password: string) => {
-    // A wrong password throws here, before anything is kept: the page shows the error.
-    const newToken = await api.login(username, password);
+  const keep = (newToken: string) => {
     localStorage.setItem(TOKEN_KEY, newToken);
     setToken(newToken);
+    setSessionEnded(false);
+  };
+
+  const login = async (email: string, password: string) => {
+    keep(await api.login(email, password));
+  };
+
+  const register = async (account: NewAccount) => {
+    keep(await api.register(account));
   };
 
   const logout = () => {
@@ -52,7 +53,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setToken(null);
   };
 
-  return <AuthContext value={{ token, user, login, logout }}>{children}</AuthContext>;
+  const endSession = () => {
+    logout();
+    setSessionEnded(true);
+  };
+
+  return (
+    <AuthContext value={{ token, user, sessionEnded, login, register, logout, endSession }}>{children}</AuthContext>
+  );
 };
 
 /** The logged-in user, from any component under <AuthProvider>. */

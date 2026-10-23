@@ -1,14 +1,11 @@
 import { Link } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
+import { useMe } from '../auth/useMe';
 
-/**
- * The top of every page: the title, back to the planning, and the links.
- *
- * <Link> changes the URL without asking the server for a new page: React
- * keeps its state, TanStack Query keeps its cache.
- */
+/** The top of every page: the title and the navigation. */
 export const Header = () => {
   const { user, logout } = useAuth();
+  const { data: me } = useMe();
 
   return (
     <header className="app-header">
@@ -22,7 +19,10 @@ export const Header = () => {
       <nav className="app-nav" aria-label="Navigation principale">
         {user ? (
           <>
-            <span className="app-user">{user.username}</span>
+            <Link to="/">Planning</Link>
+            <Link to="/my-registrations">Mes créneaux</Link>
+            {user.role === 'referent' && <Link to="/referent/initiations">Initiations</Link>}
+            {me &&<span className="app-user">{`${me.firstName} ${me.lastName}`}</span>}
             <button className="link-button" type="button" onClick={logout}>
               Se déconnecter
             </button>

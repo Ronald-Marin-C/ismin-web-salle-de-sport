@@ -5,18 +5,30 @@ import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
 import App from './App';
 import { AuthProvider, TOKEN_KEY } from './auth/AuthProvider';
+import type { Me, Role } from './types';
 
-/**
- * Test helpers, shared by every test file.
- *
- * No browser, no API during the tests. The URL lives in a MemoryRouter
- * instead of the address bar, and `fetch` is replaced by a fake API.
- */
+/** The default user of the tests: what `GET /auth/me` answers unless a test says otherwise. */
+export const alice: Me = {
+  id: 'u1',
+  email: 'alice.martin@castelmont.fr',
+  firstName: 'Alice',
+  lastName: 'Martin',
+  role: 'student',
+  initiationValidated: true,
+};
+
+export const bob: Me = {
+  id: 'u2',
+  email: 'bob.durand@castelmont.fr',
+  firstName: 'Bob',
+  lastName: 'Durand',
+  role: 'student',
+  initiationValidated: false,
+};
 
 /**
  * The whole app, as main.tsx mounts it, at `route`. With a token, the user
- * is already logged in, as after a reload. A failed request is not retried:
- * the error shows at once.
+ * is already logged in, as after a reload. Failed requests are not retried.
  */
 export function renderApp(route = '/', { token }: { token?: string } = {}) {
   if (token) localStorage.setItem(TOKEN_KEY, token);
@@ -39,37 +51,45 @@ export function renderWithRouter(ui: ReactElement) {
 }
 
 /**
- * A token as the API makes them: a real header and payload in base64url,
- * valid for an hour. The signature is fake: the front never checks it, only
- * the API can.
+ * A token shaped like the API's, valid for an hour. The signature is fake:
+ * only the API checks it.
  */
-export function makeToken({ username = 'alice', role = 'admin' }: { username?: string; role?: 'admin' | 'user' } = {}): string {
+export function makeToken({
+  email = 'alice.martin@castelmont.fr',
+  role = 'student',
+}: { email?: string; role?: Role } = {}): string {
   const encode = (value: object) =>
     btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const now = Math.floor(Date.now() / 1000);
   const header = encode({ alg: 'HS256', typ: 'JWT' });
-  const payload = encode({ sub: 'u1', username, role, iat: now, exp: now + 3600 });
+  const payload = encode({ sub: 'u1', email, role, iat: now, exp: now + 3600 });
   return `${header}.${payload}.fake-signature`;
 }
 
 /** What the fake API answers to one request. */
 type Handler = (request: Request) => Response | Promise<Response>;
 
+const defaultRoutes: Record<string, Handler> = {
+  'GET /auth/me': () => Response.json(alice),
+};
+
 /**
  * Replaces `fetch` by a fake API. `routes` maps a method and a path to an
  * answer: `{ 'GET /slots': () => Response.json([...]) }`. The query string
- * counts when the route has one. Any other request: 404.
+ * counts when the route has one. `GET /auth/me` answers Alice unless `routes`
+ * overrides it; any other request: 404.
  *
- * Returns the list of the requests made, to check what the app sent.
+ * Returns the requests made, to check what the app sent.
  */
 export function fakeApi(routes: Record<string, Handler>): Request[] {
   const requests: Request[] = [];
+  const allRoutes = { ...defaultRoutes, ...routes };
 
   const fakeFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const request = new Request(input, init);
     requests.push(request.clone());
     const { pathname, search } = new URL(request.url);
-    const handler = routes[`${request.method} ${pathname}${search}`] ?? routes[`${request.method} ${pathname}`];
+    const handler = allRoutes[`${request.method} ${pathname}${search}`] ?? allRoutes[`${request.method} ${pathname}`];
     if (!handler) {
       return Response.json({ statusCode: 404, message: `No fake for ${request.method} ${pathname}` }, { status: 404 });
     }

@@ -37,7 +37,7 @@ function renderGuardedPage(route: string) {
 
 describe('RequireAuth', () => {
   it('shows the planning to a logged-in user', () => {
-    renderApp('/', { token: makeToken({ username: 'alice' }) });
+    renderApp('/', { token: makeToken() });
 
     expect(screen.getByRole('heading', { name: 'Planning' })).toBeInTheDocument();
   });
@@ -50,12 +50,12 @@ describe('RequireAuth', () => {
   });
 
   it('comes back to the page that was asked for, once logged in', async () => {
-    fakeApi({ 'POST /auth/login': () => Response.json({ access_token: makeToken({ username: 'alice' }) }) });
+    fakeApi({ 'POST /auth/login': () => Response.json({ access_token: makeToken() }) });
     renderGuardedPage('/secret');
     expect(screen.getByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
 
-    await userEvent.type(screen.getByLabelText('Identifiant'), 'alice');
-    await userEvent.type(screen.getByLabelText('Mot de passe'), 'secret');
+    await userEvent.type(screen.getByLabelText('Email'), 'alice.martin@castelmont.fr');
+    await userEvent.type(screen.getByLabelText('Mot de passe'), 'salle-de-sport');
     await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
 
     expect(await screen.findByRole('heading', { name: 'Page protégée' })).toBeInTheDocument();
