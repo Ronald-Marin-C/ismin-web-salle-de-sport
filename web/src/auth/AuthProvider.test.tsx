@@ -41,6 +41,25 @@ describe('AuthProvider', () => {
     expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
   });
 
+  it('registers: keeps the token of the new account, and reads the user from it', async () => {
+    const newToken = makeToken({ email: 'chloe.petit@castelmont.fr' });
+    fakeApi({ 'POST /auth/register': () => Response.json({ access_token: newToken }, { status: 201 }) });
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await act(() =>
+      result.current.register({
+        firstName: 'Chloé',
+        lastName: 'Petit',
+        email: 'chloe.petit@castelmont.fr',
+        password: 'correct-horse',
+      }),
+    );
+
+    expect(result.current.token).toBe(newToken);
+    expect(localStorage.getItem(TOKEN_KEY)).toBe(newToken);
+    expect(result.current.user).toMatchObject({ email: 'chloe.petit@castelmont.fr', role: 'student' });
+  });
+
   it('is still logged in after a reload: the token is read from localStorage', () => {
     localStorage.setItem(TOKEN_KEY, token);
     const { result } = renderHook(() => useAuth(), { wrapper });

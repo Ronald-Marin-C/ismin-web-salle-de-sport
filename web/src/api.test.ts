@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { API_URL, ApiError, fetchMe, login } from './api';
+import { API_URL, ApiError, fetchMe, login, register } from './api';
 import { alice } from './test-utils';
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -74,6 +74,41 @@ describe('login', () => {
       status: 400,
       details: ['email must be an email', 'password should not be empty'],
     });
+  });
+});
+
+describe('register', () => {
+  const chloe = {
+    firstName: 'Chloé',
+    lastName: 'Petit',
+    email: 'chloe.petit@castelmont.fr',
+    password: 'correct-horse',
+  };
+
+  it('POSTs the four fields as JSON to /auth/register', async () => {
+    fetchMock.mockResolvedValue(Response.json({ access_token: 'the-token' }, { status: 201 }));
+
+    await register(chloe);
+
+    const request = sentRequest();
+    expect(request.url).toBe(`${API_URL}/auth/register`);
+    expect(request.method).toBe('POST');
+    expect(request.headers.get('Content-Type')).toContain('application/json');
+    await expect(request.json()).resolves.toEqual(chloe);
+  });
+
+  it('returns the access_token of the answer', async () => {
+    fetchMock.mockResolvedValue(Response.json({ access_token: 'the-token' }, { status: 201 }));
+
+    await expect(register(chloe)).resolves.toBe('the-token');
+  });
+
+  it('throws an ApiError carrying the message of the API when the email is already used', async () => {
+    fetchMock.mockResolvedValue(nestError(409, 'Cet email est déjà utilisé.'));
+
+    const error = await rejection(register(chloe));
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 409, details: ['Cet email est déjà utilisé.'] });
   });
 });
 
