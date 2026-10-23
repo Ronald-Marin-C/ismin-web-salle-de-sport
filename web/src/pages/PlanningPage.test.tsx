@@ -1,6 +1,7 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { TOKEN_KEY } from '../auth/AuthProvider';
 import { alice, bob, fakeApi, makeSlot, makeToken, nestError, pathOf, renderApp } from '../test-utils';
 import type { SlotView } from '../types';
 
@@ -144,5 +145,142 @@ describe('PlanningPage, the initiation', () => {
 
     await screen.findByText('07:00 – 08:00');
     screen.getAllByRole('button', { name: "S'inscrire" }).forEach((button) => expect(button).toBeDisabled());
+  });
+});
+
+describe('PlanningPage, booking', () => {
+  const created = () => Response.json({ id: 'r1' }, { status: 201 });
+
+  async function openPlanning() {
+    renderApp('/', { token });
+    await screen.findByText('Alice Martin');
+    await screen.findByText('07:00 – 08:00');
+  }
+
+  function buttonOf(hours: string, name = "S'inscrire") {
+    return within(rowOf(hours)).getByRole('button', { name });
+  }
+
+  it('books a slot with POST /slots/:date/:hour/registrations and the token', async () => {
+    const requests = fakeApi({
+      'GET /slots': () => Response.json(week()),
+      'POST /slots/2026-10-21/11/registrations': created,
+    });
+    await openPlanning();
+
+    await userEvent.click(buttonOf('11:00 – 12:00'));
+
+    const post = requests.find((request) => request.method === 'POST');
+    expect(post && pathOf(post)).toBe('/slots/2026-10-21/11/registrations');
+    expect(post?.headers.get('Authorization')).toBe(`Bearer ${token}`);
+  });
+
+  it('joins the waiting list of a full slot with the same request', async () => {
+    const requests = fakeApi({
+      'GET /slots': () => Response.json(week({ '2026-10-21 18': { remaining: 0, waitingCount: 2 } })),
+      'POST /slots/2026-10-21/18/registrations': created,
+    });
+    await openPlanning();
+
+    await userEvent.click(buttonOf('18:00 – 19:00', "Rejoindre la liste d'attente"));
+
+    const post = requests.find((request) => request.method === 'POST');
+    expect(post && pathOf(post)).toBe('/slots/2026-10-21/18/registrations');
+  });
+
+  it('shows the slot as booked once the API has answered', async () => {
+    let booked = false;
+    fakeApi({
+      'GET /slots': () =>
+        Response.json(
+          week(booked ? { '2026-10-21 11': { remaining: 11, myStatus: 'confirmed', myRegistrationId: 'r1' } } : {}),
+        ),
+      'POST /slots/2026-10-21/11/registrations': () => {
+        booked = true;
+        return created();
+      },
+    });
+    await openPlanning();
+
+    await userEvent.click(buttonOf('11:00 – 12:00'));
+
+    expect(await within(rowOf('11:00 – 12:00')).findByText('Inscrit')).toBeInTheDocument();
+    expect(within(rowOf('11:00 – 12:00')).getByText('11 places restantes')).toBeInTheDocument();
+  });
+
+  it.each([
+    [403, "Votre initiation n'a pas encore été validée par un référent."],
+    [409, 'Vous êtes déjà inscrit à ce créneau.'],
+    [422, "Deux créneaux par jour maximum, liste d'attente comprise."],
+  ])('shows the message of the API for a %i', async (status, message) => {
+    fakeApi({
+      'GET /slots': () => Response.json(week()),
+      'POST /slots/2026-10-21/11/registrations': () => nestError(status, message),
+    });
+    await openPlanning();
+
+    await userEvent.click(buttonOf('11:00 – 12:00'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(screen.getByRole('heading', { name: 'Planning' })).toBeInTheDocument();
+  });
+
+  it('says so in French when the API fails, without its message', async () => {
+    fakeApi({
+      'GET /slots': () => Response.json(week()),
+      'POST /slots/2026-10-21/11/registrations': () => nestError(500, 'Internal server error'),
+    });
+    await openPlanning();
+
+    await userEvent.click(buttonOf('11:00 – 12:00'));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent("Inscription impossible : L'API a répondu 500");
+    expect(alert).not.toHaveTextContent('Internal server error');
+  });
+
+  it('clears the error at the next booking', async () => {
+    fakeApi({
+      'GET /slots': () => Response.json(week()),
+      'POST /slots/2026-10-21/11/registrations': () =>
+        nestError(422, "Deux créneaux par jour maximum, liste d'attente comprise."),
+      'POST /slots/2026-10-21/12/registrations': created,
+    });
+    await openPlanning();
+    await userEvent.click(buttonOf('11:00 – 12:00'));
+    await screen.findByRole('alert');
+
+    await userEvent.click(buttonOf('12:00 – 13:00'));
+
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+  });
+
+  it('disables the buttons while a booking is being sent, then enables them again', async () => {
+    let answer: (response: Response) => void = () => {};
+    fakeApi({
+      'GET /slots': () => Response.json(week()),
+      'POST /slots/2026-10-21/11/registrations': () => new Promise<Response>((resolve) => (answer = resolve)),
+    });
+    await openPlanning();
+
+    await userEvent.click(buttonOf('11:00 – 12:00'));
+
+    screen.getAllByRole('button', { name: "S'inscrire" }).forEach((button) => expect(button).toBeDisabled());
+    answer(created());
+    await waitFor(() => expect(buttonOf('12:00 – 13:00')).toBeEnabled());
+  });
+
+  it('logs out when the API refuses the token, and the login page says the session ended', async () => {
+    fakeApi({
+      'GET /slots': () => Response.json(week()),
+      'POST /slots/2026-10-21/11/registrations': () => nestError(401, 'Invalid or expired token'),
+    });
+    await openPlanning();
+
+    await userEvent.click(buttonOf('11:00 – 12:00'));
+
+    expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
+    expect(screen.getByText('Votre session a pris fin. Reconnectez-vous.')).toBeInTheDocument();
+    expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
   });
 });
