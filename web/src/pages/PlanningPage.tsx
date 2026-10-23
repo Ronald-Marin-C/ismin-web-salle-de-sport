@@ -16,7 +16,7 @@ function describeBookingError(error: unknown): string {
 
 /** The slots of the next seven days, at /, one day at a time. */
 export const PlanningPage = () => {
-  const { token, endSession } = useAuth();
+  const { token, user, endSession } = useAuth();
   const { data: me } = useMe();
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<string>();
@@ -82,7 +82,12 @@ export const PlanningPage = () => {
               .filter((slot) => slot.date === day)
               .map((slot) => (
                 <li key={slot.hour}>
-                  <SlotRow slot={slot} canBook={canBook} onBook={() => book(slot)} />
+                  <SlotRow
+                    slot={slot}
+                    canBook={canBook}
+                    isReferent={user?.role === 'referent'}
+                    onBook={() => book(slot)}
+                  />
                 </li>
               ))}
           </ul>

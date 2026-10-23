@@ -7,6 +7,7 @@ import { MyRegistrationsPage } from './pages/MyRegistrationsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { PlanningPage } from './pages/PlanningPage';
 import { ReferentInitiationsPage } from './pages/ReferentInitiationsPage';
+import { ReferentSlotPage } from './pages/ReferentSlotPage';
 import { RegisterPage } from './pages/RegisterPage';
 
 /** The header, then the page of the current URL. */
@@ -37,6 +38,16 @@ const App = () => {
             <RequireAuth>
               <RequireReferent>
                 <ReferentInitiationsPage />
+              </RequireReferent>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/referent/slots/:date/:hour"
+          element={
+            <RequireAuth>
+              <RequireReferent>
+                <ReferentSlotPage />
               </RequireReferent>
             </RequireAuth>
           }

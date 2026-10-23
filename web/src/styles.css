@@ -403,3 +403,16 @@ a {
 .person .badge {
   margin-left: auto;
 }
+
+/* The lists of a slot keep their numbers: the order is the order of arrival. */
+.people {
+  margin: 0 0 16px;
+  padding: 12px 16px 12px 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.people li {
+  padding: 4px 0;
+}

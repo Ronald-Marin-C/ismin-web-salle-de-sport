@@ -48,6 +48,24 @@ export interface Student {
   initiationValidatedAt?: string;
 }
 
+/** Someone registered to a slot, as the referents see them. */
+export interface Person {
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export interface WaitingPerson extends Person {
+  /** 1 for the first in the waiting list. */
+  position: number;
+}
+
+/** GET /slots/:date/:hour/registrations: both lists in order of arrival. */
+export interface SlotRegistrations {
+  confirmed: Person[];
+  waiting: WaitingPerson[];
+}
+
 /** A registration of GET /registrations/me. */
 export interface Registration {
   id: string;

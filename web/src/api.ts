@@ -1,4 +1,4 @@
-import type { Me, NewAccount, Registration, SlotView, Student } from './types';
+import type { Me, NewAccount, Registration, SlotRegistrations, SlotView, Student } from './types';
 
 /** The fallback is the port of `npm run start:dev`. */
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
@@ -101,6 +101,16 @@ export async function searchStudents(search: string, token: string): Promise<Stu
   });
   await throwIfNotOk(res);
   return (await res.json()) as Student[];
+}
+
+/** `date` and `hour` come from the address bar: encoded, they cannot change the path. */
+export async function fetchSlotPeople(date: string, hour: string, token: string): Promise<SlotRegistrations> {
+  const res = await fetch(
+    `${API_URL}/slots/${encodeURIComponent(date)}/${encodeURIComponent(hour)}/registrations`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  await throwIfNotOk(res);
+  return (await res.json()) as SlotRegistrations;
 }
 
 /** Validating it again keeps the first validation. */
