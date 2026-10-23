@@ -28,3 +28,7 @@ L'inscription crée toujours un compte étudiant, avec un email en `@castelmont.
 ## Tests
 
 `npm ci` puis `npm test`, dans `api/` et dans `web/`.
+
+## Limites connues
+
+- Recherche d'étudiants (référents) : les majuscules sont ignorées, sauf sur les lettres accentuées, et les accents comptent. « helene » ne trouve pas « Hélène ».

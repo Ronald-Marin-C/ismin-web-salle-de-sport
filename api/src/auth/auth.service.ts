@@ -76,7 +76,7 @@ export class AuthService {
    */
   async me(userId: string): Promise<MeDto> {
     const user = await this.users.findById(userId);
-    if (!user) throw new UserNotFound(userId);
+    if (!user) throw new UserNotFound();
 
     return {
       id: user.id,

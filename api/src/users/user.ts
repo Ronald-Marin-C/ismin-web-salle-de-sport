@@ -18,9 +18,20 @@ export interface User {
   initiationValidatedBy?: string;
 }
 
-/** Thrown when no account has the given id. */
+/** A student as the referents see them, to validate their initiation. */
+export interface Student {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  initiationValidated: boolean;
+  /** When a referent validated the initiation; absent until then. */
+  initiationValidatedAt?: Date;
+}
+
+/** Thrown when no account has the given id. The message is in French: the web app shows it as it is. */
 export class UserNotFound extends Error {
-  constructor(id: string) {
-    super(`User ${id} not found`);
+  constructor() {
+    super('Compte introuvable.');
   }
 }

@@ -28,8 +28,11 @@ import {
 } from '@nestjs/swagger';
 import { AuthGuard, type JwtPayload } from '../auth/auth.guard.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
+import { Roles } from '../auth/roles.decorator.js';
+import { RolesGuard } from '../auth/roles.guard.js';
 import { RegistrationDto } from './dto/registration.dto.js';
 import { SlotParamsDto } from './dto/slot-params.dto.js';
+import { SlotRegistrationsDto } from './dto/slot-registrations.dto.js';
 import {
   AlreadyRegistered,
   CancellationTooLate,
@@ -39,12 +42,14 @@ import {
   RegistrationNotFound,
   SlotNotBookable,
   type Registration,
+  type SlotRegistrations,
 } from './registration.js';
 import { RegistrationsService } from './registrations.service.js';
 
 /**
- * Booking and cancelling the slots, and the list of one's own registrations. Translates
- * the domain errors into HTTP statuses. No common prefix: the routes are spelled out in full.
+ * Booking and cancelling the slots, the list of one's own registrations and, for the
+ * referents, who registered to a slot. Translates the domain errors into HTTP statuses.
+ * No common prefix: the routes are spelled out in full.
  */
 @Controller()
 export class RegistrationsController {
@@ -84,6 +89,20 @@ export class RegistrationsController {
       }
       throw error;
     }
+  }
+
+  /** Lists who registered to a slot: the holders of a place, then the waiting list. */
+  @Get('slots/:date/:hour/registrations')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('referent')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Who registered to a slot: the places, then the waiting list' })
+  @ApiOkResponse({ type: SlotRegistrationsDto, description: 'Both lists in order of arrival' })
+  @ApiBadRequestResponse({ description: 'Malformed date or hour' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'Requires the referent role' })
+  listForSlot(@Param() slot: SlotParamsDto): Promise<SlotRegistrations> {
+    return this.registrations.listForSlot(slot.date, slot.hour);
   }
 
   /** Lists the connected user's registrations whose slot is not over, by date then hour. */
