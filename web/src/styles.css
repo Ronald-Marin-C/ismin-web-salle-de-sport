@@ -280,3 +280,78 @@ a {
   border-radius: var(--radius);
   background: var(--accent-soft);
 }
+
+/* ─── The planning: the day tabs, then one row per slot ─────────────────── */
+
+.day-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 4px;
+  /* On a phone, the seven days scroll sideways instead of wrapping. */
+  overflow-x: auto;
+}
+
+.day-tab {
+  flex: none;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.day-tab[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.slot-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.slot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.slot-hours {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.slot-places {
+  color: var(--muted);
+}
+
+.slot .button {
+  margin-left: auto;
+}
+
+/* A past or booked slot: not "wait", as for a form being sent. */
+.slot .button:disabled {
+  cursor: not-allowed;
+}
+
+.badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+}

@@ -1,4 +1,4 @@
-import type { Me, NewAccount } from './types';
+import type { Me, NewAccount, SlotView } from './types';
 
 /** The fallback is the port of `npm run start:dev`. */
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
@@ -58,4 +58,12 @@ export async function fetchMe(token: string): Promise<Me> {
   });
   await throwIfNotOk(res);
   return (await res.json()) as Me;
+}
+
+export async function fetchSlots(token: string): Promise<SlotView[]> {
+  const res = await fetch(`${API_URL}/slots`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await throwIfNotOk(res);
+  return (await res.json()) as SlotView[];
 }
