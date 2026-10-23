@@ -270,6 +270,31 @@ describe('PlanningPage, booking', () => {
     await waitFor(() => expect(buttonOf('12:00 – 13:00')).toBeEnabled());
   });
 
+  it('keeps the buttons disabled until the planning shows the booking', async () => {
+    let calls = 0;
+    let release: () => void = () => {};
+    fakeApi({
+      'GET /slots': async () => {
+        const call = ++calls;
+        if (call > 1) await new Promise<void>((resolve) => (release = resolve));
+        return Response.json(
+          week(call > 1 ? { '2026-10-21 11': { remaining: 11, myStatus: 'confirmed', myRegistrationId: 'r1' } } : {}),
+        );
+      },
+      'POST /slots/2026-10-21/11/registrations': created,
+    });
+    await openPlanning();
+
+    await userEvent.click(buttonOf('11:00 – 12:00'));
+    await waitFor(() => expect(calls).toBe(2));
+
+    expect(buttonOf('11:00 – 12:00')).toBeDisabled();
+    expect(buttonOf('12:00 – 13:00')).toBeDisabled();
+    release();
+    expect(await within(rowOf('11:00 – 12:00')).findByText('Inscrit')).toBeInTheDocument();
+    expect(buttonOf('12:00 – 13:00')).toBeEnabled();
+  });
+
   it('logs out when the API refuses the token, and the login page says the session ended', async () => {
     fakeApi({
       'GET /slots': () => Response.json(week()),
