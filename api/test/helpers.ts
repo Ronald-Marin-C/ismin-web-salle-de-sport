@@ -13,19 +13,25 @@ export const TEST_PASSWORD = 'password123';
  *
  * @param prisma The application's Prisma client.
  * @param options `role` defaults to `student`; `initiated` (default `false`)
- * marks the initiation as validated.
+ * marks the initiation as validated; the name defaults to `Test User`.
  * @returns The created row.
  */
 export function createUser(
   prisma: PrismaService,
-  { email, role = 'student', initiated = false }: { email: string; role?: Role; initiated?: boolean },
+  {
+    email,
+    role = 'student',
+    initiated = false,
+    firstName = 'Test',
+    lastName = 'User',
+  }: { email: string; role?: Role; initiated?: boolean; firstName?: string; lastName?: string },
 ) {
   return prisma.user.create({
     data: {
       email,
       passwordHash: hashPassword(TEST_PASSWORD),
-      firstName: 'Test',
-      lastName: 'User',
+      firstName,
+      lastName,
       role,
       initiationValidatedAt: initiated ? new Date() : null,
     },
