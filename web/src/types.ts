@@ -36,3 +36,16 @@ export interface SlotView {
   myPosition?: number;
   myRegistrationId?: string;
 }
+
+/** A registration of GET /registrations/me. */
+export interface Registration {
+  id: string;
+  /** `YYYY-MM-DD`, Paris time. */
+  date: string;
+  hour: number;
+  status: RegistrationStatus;
+  /** 1 for the first in the waiting list. */
+  position?: number;
+  /** ISO 8601, UTC. */
+  startsAt: string;
+}

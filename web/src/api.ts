@@ -1,4 +1,4 @@
-import type { Me, NewAccount, SlotView } from './types';
+import type { Me, NewAccount, Registration, SlotView } from './types';
 
 /** The fallback is the port of `npm run start:dev`. */
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
@@ -72,6 +72,23 @@ export async function fetchSlots(token: string): Promise<SlotView[]> {
 export async function bookSlot(date: string, hour: number, token: string): Promise<void> {
   const res = await fetch(`${API_URL}/slots/${date}/${hour}/registrations`, {
     method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await throwIfNotOk(res);
+}
+
+export async function fetchMyRegistrations(token: string): Promise<Registration[]> {
+  const res = await fetch(`${API_URL}/registrations/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await throwIfNotOk(res);
+  return (await res.json()) as Registration[];
+}
+
+/** The API answers 204, without a body. A place held goes to the first in the waiting list. */
+export async function cancelRegistration(id: string, token: string): Promise<void> {
+  const res = await fetch(`${API_URL}/registrations/${id}`, {
+    method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
   await throwIfNotOk(res);

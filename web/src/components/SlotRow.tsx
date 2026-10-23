@@ -1,4 +1,4 @@
-import { formatHour } from '../format';
+import { formatHour, formatStatus } from '../format';
 import type { SlotView } from '../types';
 
 interface SlotRowProps {
@@ -19,8 +19,7 @@ export const SlotRow = ({ slot, canBook, onBook }: SlotRowProps) => {
           ? `Complet · ${slot.waitingCount} en attente`
           : `${slot.remaining} ${slot.remaining === 1 ? 'place restante' : 'places restantes'}`}
       </span>
-      {slot.myStatus === 'confirmed' && <span className="badge">Inscrit</span>}
-      {slot.myStatus === 'waiting' && <span className="badge">{`En attente (n°${slot.myPosition})`}</span>}
+      {slot.myStatus && <span className="badge">{formatStatus(slot.myStatus, slot.myPosition)}</span>}
       <button
         className="button"
         type="button"

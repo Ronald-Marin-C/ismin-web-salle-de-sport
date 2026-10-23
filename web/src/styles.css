@@ -329,6 +329,7 @@ a {
   background: var(--surface);
 }
 
+.slot-day,
 .slot-hours {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
