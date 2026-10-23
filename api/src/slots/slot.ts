@@ -1,8 +1,4 @@
-/** A place in the slot, or a place in its waiting list. */
-export type RegistrationStatus = 'confirmed' | 'waiting';
-
-/** Every status, for the Swagger enums. */
-export const REGISTRATION_STATUSES: RegistrationStatus[] = ['confirmed', 'waiting'];
+import type { RegistrationStatus } from '../registrations/registration.js';
 
 /**
  * A slot as one user sees it: counts only, never who registered, plus the

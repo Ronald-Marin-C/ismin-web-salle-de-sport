@@ -16,6 +16,9 @@ export const CLOSING_HOUR = 22;
 /** Number of visible days: today and the six following ones. */
 export const DAYS_AHEAD = 7;
 
+/** Slots one user may hold on the same day, waiting lists included. */
+export const MAX_SLOTS_PER_DAY = 2;
+
 /**
  * Formats a date as `YYYY-MM-DD`, in local time.
  *

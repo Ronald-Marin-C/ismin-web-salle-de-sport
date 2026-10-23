@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import type { Registration } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { RegistrationStatus, SlotView } from './slot.js';
+import type { RegistrationStatus } from '../registrations/registration.js';
+import type { SlotView } from './slot.js';
 import { CLOSING_HOUR, hasStarted, OPENING_HOUR, SLOT_CAPACITY, slotStart, visibleDates } from './slot-rules.js';
 
 /** Builds the planning from the registrations; the slots themselves are not stored. */
