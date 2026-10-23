@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
 import App from './App';
 import { AuthProvider, TOKEN_KEY } from './auth/AuthProvider';
-import type { Me, Role } from './types';
+import type { Me, Role, SlotView } from './types';
 
 /** The default user of the tests: what `GET /auth/me` answers unless a test says otherwise. */
 export const alice: Me = {
@@ -25,6 +25,20 @@ export const bob: Me = {
   role: 'student',
   initiationValidated: false,
 };
+
+/** A free slot nobody booked, on Wednesday 21 October 2026 at 11:00 unless `changes` says otherwise. */
+export function makeSlot(changes: Partial<SlotView> = {}): SlotView {
+  const { date = '2026-10-21', hour = 11 } = changes;
+  return {
+    date,
+    hour,
+    startsAt: new Date(`${date}T${String(hour).padStart(2, '0')}:00:00+02:00`).toISOString(),
+    remaining: 12,
+    waitingCount: 0,
+    isPast: false,
+    ...changes,
+  };
+}
 
 /**
  * The whole app, as main.tsx mounts it, at `route`. With a token, the user
@@ -71,13 +85,14 @@ type Handler = (request: Request) => Response | Promise<Response>;
 
 const defaultRoutes: Record<string, Handler> = {
   'GET /auth/me': () => Response.json(alice),
+  'GET /slots': () => Response.json([]),
 };
 
 /**
  * Replaces `fetch` by a fake API. `routes` maps a method and a path to an
  * answer: `{ 'GET /slots': () => Response.json([...]) }`. The query string
- * counts when the route has one. `GET /auth/me` answers Alice unless `routes`
- * overrides it; any other request: 404.
+ * counts when the route has one. Unless `routes` overrides them, `GET /auth/me`
+ * answers Alice and `GET /slots` an empty planning; any other request: 404.
  *
  * Returns the requests made, to check what the app sent.
  */
