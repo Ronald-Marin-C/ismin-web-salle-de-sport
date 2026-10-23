@@ -25,4 +25,25 @@ model User {
   initiationValidatedBy String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+
+  registrations Registration[]
+}
+
+/// A place in a slot, or in its waiting list. The slots themselves are not
+/// stored: they are always the same, and a slot is identified by `date` + `hour`.
+model Registration {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  /// 'YYYY-MM-DD', Paris time.
+  date      String
+  /// 7 to 21: the slot from hour:00 to hour+1:00.
+  hour      Int
+  /// 'confirmed' | 'waiting': SQLite has no enums, the service narrows it.
+  status    String
+  /// Orders the waiting list: the oldest comes first.
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date, hour])
+  @@index([date, hour, status])
 }

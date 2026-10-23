@@ -47,5 +47,6 @@ export async function loginAs(app: INestApplication, email: string): Promise<str
 
 /** Empties the tables, so that every test starts from a blank database. */
 export async function resetDb(prisma: PrismaService): Promise<void> {
+  await prisma.registration.deleteMany();
   await prisma.user.deleteMany();
 }
