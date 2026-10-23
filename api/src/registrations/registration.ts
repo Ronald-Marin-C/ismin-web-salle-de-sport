@@ -18,6 +18,21 @@ export interface Registration {
   startsAt: string;
 }
 
+/** A registered user, as the referents see them. */
+export interface Person {
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+/** Who registered to a slot, as the referents see it. */
+export interface SlotRegistrations {
+  /** The holders of a place, in order of arrival. */
+  confirmed: Person[];
+  /** The waiting list, first in line first; `position` is 1 for the first. */
+  waiting: (Person & { position: number })[];
+}
+
 // The messages are in French: the web app shows them as they are.
 
 /** Thrown by the booking when no referent has validated the user's initiation yet. */
