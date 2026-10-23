@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+import { Link, NavLink } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
 import { useMe } from '../auth/useMe';
 
@@ -19,10 +19,10 @@ export const Header = () => {
       <nav className="app-nav" aria-label="Navigation principale">
         {user ? (
           <>
-            <Link to="/">Planning</Link>
-            <Link to="/my-registrations">Mes créneaux</Link>
-            {user.role === 'referent' && <Link to="/referent/initiations">Initiations</Link>}
-            {me &&<span className="app-user">{`${me.firstName} ${me.lastName}`}</span>}
+            <NavLink to="/">Planning</NavLink>
+            <NavLink to="/my-registrations">Mes créneaux</NavLink>
+            {user.role === 'referent' && <NavLink to="/referent/initiations">Initiations</NavLink>}
+            {me && <span className="app-user">{`${me.firstName} ${me.lastName}`}</span>}
             <button className="link-button" type="button" onClick={logout}>
               Se déconnecter
             </button>
