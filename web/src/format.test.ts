@@ -1,10 +1,9 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { formatDay, formatHour } from './format';
 
 describe('formatDay', () => {
-  const timeZone = process.env.TZ;
   afterEach(() => {
-    process.env.TZ = timeZone;
+    vi.unstubAllEnvs();
   });
 
   it('writes the short day, then the day and the month', () => {
@@ -16,7 +15,7 @@ describe('formatDay', () => {
   });
 
   it('keeps the same day in a time zone behind UTC', () => {
-    process.env.TZ = 'America/Bogota';
+    vi.stubEnv('TZ', 'America/Bogota');
 
     expect(formatDay('2026-10-21')).toBe('mer. 21/10');
   });
