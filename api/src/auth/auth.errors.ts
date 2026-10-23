@@ -1,14 +1,16 @@
+// The messages are in French: the web app shows them as they are.
+
 /** Thrown by the registration when the email does not belong to the school domain. */
 export class EmailNotFromSchool extends Error {
   constructor(domain: string) {
-    super(`Use your school email (@${domain})`);
+    super(`Utilisez votre email de l'école (@${domain}).`);
   }
 }
 
 /** Thrown by the registration when an account already uses this email. */
 export class EmailAlreadyUsed extends Error {
-  constructor(email: string) {
-    super(`An account already uses ${email}`);
+  constructor() {
+    super('Cet email est déjà utilisé.');
   }
 }
 
@@ -18,6 +20,6 @@ export class EmailAlreadyUsed extends Error {
  */
 export class InvalidCredentials extends Error {
   constructor() {
-    super('Wrong email or password');
+    super('Email ou mot de passe incorrect.');
   }
 }

@@ -47,7 +47,7 @@ export class AuthService {
       // No lookup beforehand: the unique index on email decides, which also
       // covers two registrations of the same email at the same instant.
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new EmailAlreadyUsed(email);
+        throw new EmailAlreadyUsed();
       }
       throw error;
     }
