@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router';
 import { RequireAuth } from './auth/RequireAuth';
 import { Header } from './components/Header';
 import { LoginPage } from './pages/LoginPage';
+import { MyRegistrationsPage } from './pages/MyRegistrationsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { PlanningPage } from './pages/PlanningPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -17,6 +18,14 @@ const App = () => {
           element={
             <RequireAuth>
               <PlanningPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/my-registrations"
+          element={
+            <RequireAuth>
+              <MyRegistrationsPage />
             </RequireAuth>
           }
         />
