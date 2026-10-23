@@ -12,7 +12,6 @@ interface PeopleProps {
   empty: string;
 }
 
-/** One list of names, labelled by its title. */
 const People = ({ id, title, people, empty }: PeopleProps) => (
   <>
     <h3 id={id}>{title}</h3>
