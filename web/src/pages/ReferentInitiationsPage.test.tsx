@@ -133,6 +133,22 @@ describe('ReferentInitiationsPage, the search', () => {
     expect(pathOf(usersRequests(requests)[0])).toBe('/users?search=');
   });
 
+  it('shows the students of a new search', async () => {
+    fakeReferentApi({
+      'GET /users?search=durand': () => Response.json([makeStudent()]),
+      'GET /users?search=martin': () => Response.json([alice]),
+    });
+    openPage();
+    await search('durand');
+    await screen.findByText('Bob Durand');
+
+    await userEvent.clear(screen.getByLabelText('Rechercher un élève'));
+    await search('martin');
+
+    expect(await screen.findByText('Alice Martin')).toBeInTheDocument();
+    expect(screen.queryByText('Bob Durand')).not.toBeInTheDocument();
+  });
+
   it('shows a loading status, then the students', async () => {
     let answer: (response: Response) => void = () => {};
     fakeReferentApi({ 'GET /users?search=durand': () => new Promise<Response>((resolve) => (answer = resolve)) });
