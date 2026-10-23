@@ -155,7 +155,10 @@ describe('MyRegistrationsPage, the deadline', () => {
     vi.setSystemTime(new Date('2026-10-22T18:30:00+02:00'));
     fakeApi({
       'GET /registrations/me': () =>
-        Response.json([waiting, { ...confirmed, id: 'r3', date: '2026-10-22', hour: 21, startsAt: '2026-10-22T19:00:00.000Z' }]),
+        Response.json([
+          waiting,
+          { ...confirmed, id: 'r3', date: '2026-10-22', hour: 21, startsAt: '2026-10-22T19:00:00.000Z' },
+        ]),
     });
     renderApp('/my-registrations', { token: makeToken() });
     await screen.findByText('19:00 – 20:00');

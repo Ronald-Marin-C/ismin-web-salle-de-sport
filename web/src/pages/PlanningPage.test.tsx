@@ -60,7 +60,8 @@ describe('PlanningPage, the slots', () => {
     renderApp('/', { token });
 
     await screen.findByText('18:00 – 19:00');
-    expect(within(rowOf('18:00 – 19:00')).getByRole('button', { name: "Rejoindre la liste d'attente" })).toBeInTheDocument();
+    const full = within(rowOf('18:00 – 19:00'));
+    expect(full.getByRole('button', { name: "Rejoindre la liste d'attente" })).toBeInTheDocument();
     expect(within(rowOf('17:00 – 18:00')).getByRole('button', { name: "S'inscrire" })).toBeInTheDocument();
   });
 
@@ -118,7 +119,8 @@ describe('PlanningPage, the slots', () => {
 });
 
 describe('PlanningPage, the initiation', () => {
-  const notice = "Votre initiation n'est pas encore validée. Contactez un référent pour la faire : vous pourrez ensuite réserver.";
+  const notice =
+    "Votre initiation n'est pas encore validée. Contactez un référent pour la faire : vous pourrez ensuite réserver.";
 
   it('lets a student whose initiation is validated book, without the notice', async () => {
     fakeApi({ 'GET /slots': () => Response.json(week()) });
