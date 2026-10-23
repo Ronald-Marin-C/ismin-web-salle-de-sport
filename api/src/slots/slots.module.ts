@@ -6,5 +6,6 @@ import { SlotsService } from './slots.service.js';
 @Module({
   controllers: [SlotsController],
   providers: [SlotsService],
+  exports: [SlotsService],
 })
 export class SlotsModule {}

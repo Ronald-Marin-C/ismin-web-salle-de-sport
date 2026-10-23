@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { REGISTRATION_STATUSES, type RegistrationStatus, type SlotView } from '../slot.js';
+import { REGISTRATION_STATUSES, type RegistrationStatus } from '../../registrations/registration.js';
+import type { SlotView } from '../slot.js';
 
 /**
  * A slot, as `GET /slots` returns it. `SlotView` is an interface, erased at
