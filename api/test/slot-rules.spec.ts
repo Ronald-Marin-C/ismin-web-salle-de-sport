@@ -1,4 +1,11 @@
-import { hasStarted, isSlotInWindow, slotStart, toIsoDate, visibleDates } from '../src/slots/slot-rules.js';
+import {
+  hasStarted,
+  isSlotInWindow,
+  minutesBefore,
+  slotStart,
+  toIsoDate,
+  visibleDates,
+} from '../src/slots/slot-rules.js';
 
 /**
  * The calendar rules of the slots, as pure functions of `now`. The suite runs
@@ -97,6 +104,20 @@ describe('slot rules', () => {
 
     it('is false the second before', () => {
       expect(hasStarted('2026-10-21', 14, new Date('2026-10-21T13:59:59'))).toBe(false);
+    });
+  });
+
+  describe('minutesBefore', () => {
+    it('counts the minutes left before the start of the slot', () => {
+      expect(minutesBefore('2026-10-21', 14, new Date('2026-10-21T13:00:00'))).toBe(60);
+    });
+
+    it('keeps the seconds instead of rounding', () => {
+      expect(minutesBefore('2026-10-21', 14, new Date('2026-10-21T13:00:30'))).toBe(59.5);
+    });
+
+    it('is negative once the slot has started', () => {
+      expect(minutesBefore('2026-10-21', 14, new Date('2026-10-21T14:30:00'))).toBe(-30);
     });
   });
 });

@@ -2,18 +2,29 @@ import { Injectable } from '@nestjs/common';
 import type { Registration as RegistrationRow } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { SlotView } from '../slots/slot.js';
-import { hasStarted, isSlotInWindow, MAX_SLOTS_PER_DAY, SLOT_CAPACITY, slotStart } from '../slots/slot-rules.js';
+import {
+  CANCEL_DEADLINE_MINUTES,
+  hasStarted,
+  isSlotInWindow,
+  MAX_SLOTS_PER_DAY,
+  minutesBefore,
+  SLOT_CAPACITY,
+  slotStart,
+} from '../slots/slot-rules.js';
 import { SlotsService } from '../slots/slots.service.js';
 import {
   AlreadyRegistered,
+  CancellationTooLate,
   DailyLimitReached,
   InitiationRequired,
+  NotYourRegistration,
+  RegistrationNotFound,
   SlotNotBookable,
   type Registration,
   type RegistrationStatus,
 } from './registration.js';
 
-/** Booking the slots: the places, the waiting lists and the rules a booking must follow. */
+/** Booking and cancelling the slots: the places, the waiting lists and the rules they follow. */
 @Injectable()
 export class RegistrationsService {
   constructor(
@@ -56,6 +67,39 @@ export class RegistrationsService {
       const ahead = await tx.registration.count({ where: { date, hour, status: 'waiting' } });
       const row = await tx.registration.create({ data: { userId, date, hour, status: 'waiting' } });
       return toRegistration(row, ahead + 1);
+    });
+  }
+
+  /**
+   * Cancels one of the user's registrations. When it held a place, the place
+   * goes to the first in the slot's waiting list.
+   *
+   * The cancellation and the promotion run in one transaction: if the
+   * promotion fails, the cancellation is undone, so that a place never stays
+   * free while someone is waiting for it.
+   *
+   * @param now Decides whether it is still time to cancel.
+   * @throws RegistrationNotFound when no registration has this id.
+   * @throws NotYourRegistration when the registration belongs to another user.
+   * @throws CancellationTooLate less than an hour before the slot, waiting list included.
+   */
+  cancel(userId: string, registrationId: string, now: Date): Promise<void> {
+    return this.prisma.$transaction(async (tx) => {
+      const registration = await tx.registration.findUnique({ where: { id: registrationId } });
+      if (!registration) throw new RegistrationNotFound();
+      if (registration.userId !== userId) throw new NotYourRegistration();
+      const { date, hour } = registration;
+      if (minutesBefore(date, hour, now) < CANCEL_DEADLINE_MINUTES) throw new CancellationTooLate();
+
+      await tx.registration.delete({ where: { id: registrationId } });
+      if (registration.status !== 'confirmed') return;
+
+      // Same order as the planning: the place goes to the one it shows first in line.
+      const next = await tx.registration.findFirst({
+        where: { date, hour, status: 'waiting' },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (next) await tx.registration.update({ where: { id: next.id }, data: { status: 'confirmed' } });
     });
   }
 

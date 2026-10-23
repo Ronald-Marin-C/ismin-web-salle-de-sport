@@ -47,3 +47,24 @@ export class DailyLimitReached extends Error {
     super("Deux créneaux par jour maximum, liste d'attente comprise.");
   }
 }
+
+/** Thrown by the cancellation when no registration has this id, for instance once it has been cancelled. */
+export class RegistrationNotFound extends Error {
+  constructor() {
+    super('Inscription introuvable.');
+  }
+}
+
+/** Thrown by the cancellation when the registration belongs to another user. */
+export class NotYourRegistration extends Error {
+  constructor() {
+    super('Cette inscription ne vous appartient pas.');
+  }
+}
+
+/** Thrown by the cancellation less than an hour before the slot, waiting list included. */
+export class CancellationTooLate extends Error {
+  constructor() {
+    super("Désinscription possible jusqu'à une heure avant le créneau.");
+  }
+}
