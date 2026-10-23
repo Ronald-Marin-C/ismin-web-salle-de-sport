@@ -13,8 +13,9 @@ const INITIATION_REQUIRED = "Votre initiation n'a pas encore été validée par 
 const NOW_ISO = '2026-10-21T08:30:00.000Z';
 
 /**
- * The referents' routes: searching the students and validating their
- * initiation. The clock is fixed on Wednesday 21 October 2026, 10:30, Paris time.
+ * The referents' routes: searching the students, validating their initiation
+ * and seeing who registered to a slot. The clock is fixed on Wednesday
+ * 21 October 2026, 10:30, Paris time.
  */
 describe('Referent API', () => {
   let app: INestApplication;
@@ -65,6 +66,27 @@ describe('Referent API', () => {
 
   function validate(token: string, userId: string) {
     return request(app.getHttpServer()).patch(`/users/${userId}/initiation`).set('Authorization', `Bearer ${token}`);
+  }
+
+  function slotRegistrations(token: string, date: string, hour: number | string) {
+    return request(app.getHttpServer())
+      .get(`/slots/${date}/${hour}/registrations`)
+      .set('Authorization', `Bearer ${token}`);
+  }
+
+  /** Registers a new student in a slot straight in the database; `createdAt` sets the order of arrival. */
+  async function addRegistration(
+    firstName: string,
+    lastName: string,
+    slot: { date: string; hour: number },
+    status: 'confirmed' | 'waiting',
+    createdAt: string,
+  ): Promise<void> {
+    const email = `${firstName}.${lastName}@castelmont.fr`.toLowerCase();
+    const user = await createUser(prisma, { email, firstName, lastName, initiated: true });
+    await prisma.registration.create({
+      data: { userId: user.id, date: slot.date, hour: slot.hour, status, createdAt: new Date(createdAt) },
+    });
   }
 
   describe('GET /users', () => {
@@ -242,6 +264,63 @@ describe('Referent API', () => {
       await validate(referent.token, bob.id).expect(200);
       const booked = await book().expect(201);
       expect(booked.body.status).toBe('confirmed');
+    });
+  });
+
+  describe('GET /slots/:date/:hour/registrations', () => {
+    const slot = { date: '2026-10-22', hour: 18 };
+
+    it('answers 401 without a token', async () => {
+      await request(app.getHttpServer()).get('/slots/2026-10-22/18/registrations').expect(401);
+    });
+
+    it('answers 403 to a student', async () => {
+      const student = await connect('chloe.petit@castelmont.fr', { initiated: true });
+
+      await slotRegistrations(student.token, '2026-10-22', 18).expect(403);
+    });
+
+    it('lists the confirmed students, then the waiting list with the positions, both in order of arrival', async () => {
+      const referent = await connectReferent();
+      await addRegistration('Alice', 'Martin', slot, 'confirmed', '2026-10-20T08:02:00');
+      await addRegistration('Chloe', 'Petit', slot, 'waiting', '2026-10-20T08:05:00');
+      await addRegistration('Bob', 'Durand', slot, 'confirmed', '2026-10-20T08:00:00');
+      await addRegistration('David', 'Roux', slot, 'waiting', '2026-10-20T08:03:00');
+
+      const response = await slotRegistrations(referent.token, '2026-10-22', 18).expect(200);
+      expect(response.body).toEqual({
+        confirmed: [
+          { firstName: 'Bob', lastName: 'Durand', email: 'bob.durand@castelmont.fr' },
+          { firstName: 'Alice', lastName: 'Martin', email: 'alice.martin@castelmont.fr' },
+        ],
+        waiting: [
+          { firstName: 'David', lastName: 'Roux', email: 'david.roux@castelmont.fr', position: 1 },
+          { firstName: 'Chloe', lastName: 'Petit', email: 'chloe.petit@castelmont.fr', position: 2 },
+        ],
+      });
+    });
+
+    it('lists the registrations of this slot only', async () => {
+      const referent = await connectReferent();
+      await addRegistration('Bob', 'Durand', slot, 'confirmed', '2026-10-20T08:00:00');
+      // The same day at another hour, and another day at the same hour, registered earlier.
+      await addRegistration('Emma', 'Blanc', { date: '2026-10-22', hour: 19 }, 'confirmed', '2026-10-19T08:00:00');
+      await addRegistration('Felix', 'Noir', { date: '2026-10-22', hour: 19 }, 'waiting', '2026-10-19T08:01:00');
+      await addRegistration('Gael', 'Morel', { date: '2026-10-23', hour: 18 }, 'confirmed', '2026-10-19T08:02:00');
+      await addRegistration('Hugo', 'Leroy', { date: '2026-10-23', hour: 18 }, 'waiting', '2026-10-19T08:03:00');
+
+      const response = await slotRegistrations(referent.token, '2026-10-22', 18).expect(200);
+      expect(response.body).toEqual({
+        confirmed: [{ firstName: 'Bob', lastName: 'Durand', email: 'bob.durand@castelmont.fr' }],
+        waiting: [],
+      });
+    });
+
+    it('answers 400 for a malformed date or hour', async () => {
+      const referent = await connectReferent();
+
+      await slotRegistrations(referent.token, '22-10-2026', 18).expect(400);
+      await slotRegistrations(referent.token, '2026-10-22', 'abc').expect(400);
     });
   });
 });
