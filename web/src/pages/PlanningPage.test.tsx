@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { alice, bob, fakeApi, makeSlot, makeToken, nestError, renderApp } from '../test-utils';
+import { alice, bob, fakeApi, makeSlot, makeToken, nestError, pathOf, renderApp } from '../test-utils';
 import type { SlotView } from '../types';
 
 const DATES = ['2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24', '2026-10-25', '2026-10-26', '2026-10-27'];
@@ -77,6 +77,15 @@ describe('PlanningPage, the slots', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(15);
   });
 
+  it('asks for the slots with the token', async () => {
+    const requests = fakeApi({ 'GET /slots': () => Response.json(week()) });
+    renderApp('/', { token });
+
+    await screen.findByText('07:00 – 08:00');
+    const slots = requests.find((request) => request.method === 'GET' && pathOf(request) === '/slots');
+    expect(slots?.headers.get('Authorization')).toBe(`Bearer ${token}`);
+  });
+
   it('says so when the planning cannot be loaded', async () => {
     fakeApi({ 'GET /slots': () => nestError(500, 'Internal server error') });
     renderApp('/', { token });
@@ -125,6 +134,14 @@ describe('PlanningPage, the initiation', () => {
     renderApp('/', { token: bobToken });
 
     expect(await screen.findByText(notice)).toBeInTheDocument();
+    await screen.findByText('07:00 – 08:00');
+    screen.getAllByRole('button', { name: "S'inscrire" }).forEach((button) => expect(button).toBeDisabled());
+  });
+
+  it('disables the buttons until the profile has arrived', async () => {
+    fakeApi({ 'GET /auth/me': () => new Promise<Response>(() => {}), 'GET /slots': () => Response.json(week()) });
+    renderApp('/', { token });
+
     await screen.findByText('07:00 – 08:00');
     screen.getAllByRole('button', { name: "S'inscrire" }).forEach((button) => expect(button).toBeDisabled());
   });

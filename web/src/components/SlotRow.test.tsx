@@ -58,6 +58,12 @@ describe('SlotRow', () => {
     expect(screen.getByRole('button', { name: "Rejoindre la liste d'attente" })).toBeDisabled();
   });
 
+  it('shows the own place in the waiting list, not its length', () => {
+    renderRow(makeSlot({ remaining: 0, waitingCount: 5, myStatus: 'waiting', myPosition: 2, myRegistrationId: 'r1' }));
+
+    expect(screen.getByText('En attente (n°2)')).toBeInTheDocument();
+  });
+
   it('disables the button when the user cannot book', () => {
     renderRow(makeSlot(), { canBook: false });
 
