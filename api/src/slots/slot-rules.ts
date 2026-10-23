@@ -4,6 +4,9 @@
  * runs with TZ=Europe/Paris.
  */
 
+/** Places in a slot: beyond them, registrations go to the waiting list. */
+export const SLOT_CAPACITY = 12;
+
 /** Hour of the first slot of the day, 7:00 to 8:00. */
 export const OPENING_HOUR = 7;
 
