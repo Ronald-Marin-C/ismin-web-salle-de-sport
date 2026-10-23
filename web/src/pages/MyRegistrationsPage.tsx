@@ -37,6 +37,7 @@ export const MyRegistrationsPage = () => {
     try {
       await cancelRegistration(registration.id, token!);
       // Awaited: the buttons stay disabled until the list no longer shows the registration.
+      // Only ['my-registrations']: with no staleTime, the planning refetches its slots whenever it opens.
       await queryClient.invalidateQueries({ queryKey: ['my-registrations'] });
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {

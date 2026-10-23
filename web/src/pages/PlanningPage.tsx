@@ -40,6 +40,7 @@ export const PlanningPage = () => {
     try {
       await bookSlot(slot.date, slot.hour, token!);
       // Awaited: the buttons stay disabled until the planning shows the new registration.
+      // Only ['slots']: with no staleTime, My registrations refetches its list whenever it opens.
       await queryClient.invalidateQueries({ queryKey: ['slots'] });
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
