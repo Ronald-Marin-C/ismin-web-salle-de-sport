@@ -8,31 +8,29 @@ interface FromState {
   from?: string;
 }
 
-/** The login page, at /login. A controlled form: React holds the value of each field. */
+/** The login page, at /login. */
 export const LoginPage = () => {
-  const { login } = useAuth();
+  const { login, sessionEnded } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
-    // Without it, the browser sends the form itself and reloads the page.
     event.preventDefault();
     setError('');
 
     try {
-      await login(username, password);
-      // Back to the page RequireAuth came from, or to the planning. replace: the
-      // login page does not stay in the history.
+      await login(email, password);
+      // replace: the login page does not stay in the history.
       const from = (location.state as FromState | null)?.from ?? '/';
       navigate(from, { replace: true });
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 401
-          ? 'Identifiant ou mot de passe incorrect.'
+          ? 'Email ou mot de passe incorrect.'
           : `Connexion impossible : ${err instanceof Error ? err.message : String(err)}`,
       );
     }
@@ -42,15 +40,22 @@ export const LoginPage = () => {
     <section className="page form-page">
       <h2>Connexion</h2>
 
+      {sessionEnded && (
+        <p className="notice" role="status">
+          Votre session a pris fin. Reconnectez-vous.
+        </p>
+      )}
+
       <form className="form" onSubmit={handleSubmit}>
         <div className="field">
-          <label htmlFor="login-username">Identifiant</label>
+          <label htmlFor="login-email">Email</label>
           <input
-            id="login-username"
-            name="username"
+            id="login-email"
+            name="email"
+            type="email"
             autoComplete="username"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
           />
         </div>
 
@@ -76,6 +81,11 @@ export const LoginPage = () => {
           Se connecter
         </button>
       </form>
+
+      <p className="hint">
+        Comptes de démonstration : referent1@castelmont.fr (référent) et alice.martin@castelmont.fr (élève), mot de
+        passe salle-de-sport.
+      </p>
     </section>
   );
 };

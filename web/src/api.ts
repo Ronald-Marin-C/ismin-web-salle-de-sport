@@ -1,11 +1,9 @@
-/** Where the API runs, read from `.env`. The fallback is the port of `npm run start:dev`. */
+import type { Me } from './types';
+
+/** The fallback is the port of `npm run start:dev`. */
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
-/**
- * An answer of the API that is not ok: a 4xx or a 5xx. `status` says
- * which one, and the pages decide what to show from it. `details` holds what
- * the API explained, one sentence per invalid field for a 400.
- */
+/** A 4xx or 5xx answer of the API. `details` holds its messages, one per invalid field for a 400. */
 export class ApiError extends Error {
   readonly status: number;
   readonly details: string[];
@@ -19,10 +17,9 @@ export class ApiError extends Error {
 }
 
 /**
- * Does nothing when the answer is ok, throws an ApiError otherwise.
- *
- * NestJS explains its errors in the body, `{ statusCode, message, error }`:
- * `message` is a sentence, or a list of sentences for a 400.
+ * Throws an ApiError when the answer is not ok. NestJS puts its error in the
+ * body as `{ statusCode, message, error }`, where `message` is a sentence or,
+ * for a 400, a list of sentences.
  */
 export async function throwIfNotOk(res: Response): Promise<void> {
   if (res.ok) return;
@@ -33,19 +30,21 @@ export async function throwIfNotOk(res: Response): Promise<void> {
   throw new ApiError(res.status, `L'API a répondu ${res.status}`, details);
 }
 
-/**
- * POST /auth/login, and the `access_token` of the answer. A wrong password: 401.
- *
- * A JSON body needs its header, `'Content-Type': 'application/json'`:
- * without it, NestJS does not read the body.
- */
-export async function login(username: string, password: string): Promise<string> {
+export async function login(email: string, password: string): Promise<string> {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ email, password }),
   });
   await throwIfNotOk(res);
   const body = (await res.json()) as { access_token: string };
   return body.access_token;
+}
+
+export async function fetchMe(token: string): Promise<Me> {
+  const res = await fetch(`${API_URL}/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await throwIfNotOk(res);
+  return (await res.json()) as Me;
 }
