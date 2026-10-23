@@ -2,6 +2,7 @@ import {
   ConflictException,
   Controller,
   ForbiddenException,
+  Get,
   Param,
   Post,
   UnprocessableEntityException,
@@ -13,6 +14,7 @@ import {
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
@@ -31,8 +33,8 @@ import {
 import { RegistrationsService } from './registrations.service.js';
 
 /**
- * Booking the slots. Translates the domain errors into HTTP statuses.
- * No common prefix: the routes are spelled out in full.
+ * Booking the slots, and the list of one's own registrations. Translates the
+ * domain errors into HTTP statuses. No common prefix: the routes are spelled out in full.
  */
 @Controller()
 export class RegistrationsController {
@@ -72,5 +74,16 @@ export class RegistrationsController {
       }
       throw error;
     }
+  }
+
+  /** Lists the connected user's registrations whose slot is not over, by date then hour. */
+  @Get('registrations/me')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'My registrations in the slots not over yet, with my place in the waiting lists' })
+  @ApiOkResponse({ type: [RegistrationDto], description: 'By date then hour' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  findMine(@CurrentUser() user: JwtPayload): Promise<Registration[]> {
+    return this.registrations.findMine(user.sub, new Date());
   }
 }

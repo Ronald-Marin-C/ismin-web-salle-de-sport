@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import type { Registration as RegistrationRow } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import type { SlotView } from '../slots/slot.js';
 import { hasStarted, isSlotInWindow, MAX_SLOTS_PER_DAY, SLOT_CAPACITY, slotStart } from '../slots/slot-rules.js';
+import { SlotsService } from '../slots/slots.service.js';
 import {
   AlreadyRegistered,
   DailyLimitReached,
@@ -14,7 +16,10 @@ import {
 /** Booking the slots: the places, the waiting lists and the rules a booking must follow. */
 @Injectable()
 export class RegistrationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly slots: SlotsService,
+  ) {}
 
   /**
    * Books a slot for a user: a place while there is room, then a place in the waiting list.
@@ -53,6 +58,36 @@ export class RegistrationsService {
       return toRegistration(row, ahead + 1);
     });
   }
+
+  /**
+   * The user's registrations whose slot is not over, by date then hour.
+   *
+   * Read from the planning, so that the places in the waiting lists are the
+   * ones `GET /slots` shows.
+   *
+   * @param now Decides the visible days and the slots that are over.
+   */
+  async findMine(userId: string, now: Date): Promise<Registration[]> {
+    const slots = await this.slots.listForUser(userId, now);
+    // A slot is over once the next hour has begun.
+    return slots
+      .filter((slot) => !hasStarted(slot.date, slot.hour + 1, now))
+      .flatMap((slot) => fromSlot(slot) ?? []);
+  }
+}
+
+/** The user's registration in a slot of their planning, when they hold one. */
+function fromSlot(slot: SlotView): Registration | undefined {
+  if (!slot.myRegistrationId || !slot.myStatus) return undefined;
+  const registration: Registration = {
+    id: slot.myRegistrationId,
+    date: slot.date,
+    hour: slot.hour,
+    status: slot.myStatus,
+    startsAt: slot.startsAt,
+  };
+  if (slot.myPosition) registration.position = slot.myPosition;
+  return registration;
 }
 
 /** @param position The place in the waiting list, for a `waiting` registration. */
