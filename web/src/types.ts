@@ -37,6 +37,17 @@ export interface SlotView {
   myRegistrationId?: string;
 }
 
+/** A student of GET /users, as the referents see them. */
+export interface Student {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  initiationValidated: boolean;
+  /** ISO 8601, UTC. Absent until a referent validates the initiation. */
+  initiationValidatedAt?: string;
+}
+
 /** A registration of GET /registrations/me. */
 export interface Registration {
   id: string;

@@ -9,6 +9,13 @@ export function formatDay(date: string): string {
   );
 }
 
+/** "2026-10-21T08:30:00.000Z" → "21/10": the day in Paris, as everywhere in the app, wherever the browser is. */
+export function formatDate(instant: string): string {
+  return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Paris' }).format(
+    new Date(instant),
+  );
+}
+
 const clock = (hour: number) => `${String(hour).padStart(2, '0')}:00`;
 
 /** 7 → "07:00 – 08:00": a slot lasts one hour. */
