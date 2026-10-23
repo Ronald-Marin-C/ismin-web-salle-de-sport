@@ -1,4 +1,4 @@
-import type { Me } from './types';
+import type { Me, NewAccount } from './types';
 
 /** The fallback is the port of `npm run start:dev`. */
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
@@ -35,6 +35,17 @@ export async function login(email: string, password: string): Promise<string> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
+  });
+  await throwIfNotOk(res);
+  const body = (await res.json()) as { access_token: string };
+  return body.access_token;
+}
+
+export async function register(account: NewAccount): Promise<string> {
+  const res = await fetch(`${API_URL}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(account),
   });
   await throwIfNotOk(res);
   const body = (await res.json()) as { access_token: string };

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import * as api from '../api';
+import type { NewAccount } from '../types';
 import { decodePayload, type JwtPayload } from './jwt';
 
 /** The localStorage key of the token. */
@@ -15,6 +16,8 @@ export interface Auth {
   sessionEnded: boolean;
   /** Lets the ApiError through: 401 for wrong credentials. */
   login: (email: string, password: string) => Promise<void>;
+  /** Creates a student account and logs it in. Lets the ApiError through: 400 or 409. */
+  register: (account: NewAccount) => Promise<void>;
   logout: () => void;
   /** Logs out after the API refused the token. */
   endSession: () => void;
@@ -43,6 +46,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     keep(await api.login(email, password));
   };
 
+  const register = async (account: NewAccount) => {
+    keep(await api.register(account));
+  };
+
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
@@ -53,7 +60,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setSessionEnded(true);
   };
 
-  return <AuthContext value={{ token, user, sessionEnded, login, logout, endSession }}>{children}</AuthContext>;
+  return (
+    <AuthContext value={{ token, user, sessionEnded, login, register, logout, endSession }}>{children}</AuthContext>
+  );
 };
 
 /** The logged-in user, from any component under <AuthProvider>. */

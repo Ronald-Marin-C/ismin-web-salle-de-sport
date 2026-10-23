@@ -10,3 +10,10 @@ export interface Me {
   role: Role;
   initiationValidated: boolean;
 }
+
+export interface NewAccount {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}

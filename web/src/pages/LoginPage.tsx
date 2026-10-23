@@ -1,5 +1,5 @@
 import { useState, type SubmitEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { ApiError } from '../api';
 import { useAuth } from '../auth/AuthProvider';
 
@@ -81,6 +81,10 @@ export const LoginPage = () => {
           Se connecter
         </button>
       </form>
+
+      <p className="hint">
+        Pas encore de compte ? <Link to="/register">Créer un compte</Link>
+      </p>
 
       <p className="hint">
         Comptes de démonstration : referent1@castelmont.fr (référent) et alice.martin@castelmont.fr (élève), mot de
