@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 /** Body of `POST /auth/login`. The email is matched whatever its case. */
 export class LoginDto {
@@ -7,8 +7,9 @@ export class LoginDto {
   @IsEmail()
   email!: string;
 
-  @ApiProperty({ example: 'salle-de-sport' })
+  @ApiProperty({ example: 'salle-de-sport', maxLength: 128 })
   @IsString()
   @IsNotEmpty()
+  @MaxLength(128)
   password!: string;
 }
