@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { TOKEN_KEY } from '../auth/AuthProvider';
@@ -88,6 +88,27 @@ describe('PlanningPage, the slots', () => {
     expect(screen.getByRole('button', { name: 'mer. 21/10' })).toHaveAttribute('aria-pressed', 'false');
     expect(within(rowOf('18:00 – 19:00')).getByText('4 places restantes')).toBeInTheDocument();
     expect(screen.getAllByRole('listitem')).toHaveLength(15);
+  });
+
+  it('goes back to the first day when the selected one has left the planning', async () => {
+    const nextWeek = [...DATES.slice(1), '2026-10-28'].flatMap((date) =>
+      HOURS.map((hour) => makeSlot({ date, hour, remaining: date === '2026-10-22' && hour === 18 ? 4 : 12 })),
+    );
+    let afterMidnight = false;
+    fakeApi({ 'GET /slots': () => Response.json(afterMidnight ? nextWeek : week()) });
+    renderApp('/', { token });
+    await screen.findByText('07:00 – 08:00');
+    await userEvent.click(screen.getByRole('button', { name: 'mer. 21/10' }));
+
+    // Back to the browser tab after midnight: the planning is asked for again and starts one day later.
+    afterMidnight = true;
+    fireEvent(window, new Event('visibilitychange'));
+
+    expect(await screen.findByRole('button', { name: 'mer. 28/10' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'mer. 21/10' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'jeu. 22/10' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByRole('listitem')).toHaveLength(15);
+    expect(within(rowOf('18:00 – 19:00')).getByText('4 places restantes')).toBeInTheDocument();
   });
 
   it('asks for the slots with the token', async () => {
