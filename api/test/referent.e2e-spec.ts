@@ -8,6 +8,7 @@ import { createUser, loginAs, resetDb } from './helpers.js';
 
 const ACCOUNT_NOT_FOUND = 'Compte introuvable.';
 const INITIATION_REQUIRED = "Votre initiation n'a pas encore été validée par un référent.";
+const SLOT_NOT_FOUND = 'Créneau introuvable.';
 
 /** The fixed clock, 10:30 in Paris, as the API serialises it. */
 const NOW_ISO = '2026-10-21T08:30:00.000Z';
@@ -322,6 +323,27 @@ describe('Referent API', () => {
 
       await slotRegistrations(referent.token, '22-10-2026', 18).expect(400);
       await slotRegistrations(referent.token, '2026-10-22', 'abc').expect(400);
+    });
+
+    it.each([
+      ['an hour before the opening', '2026-10-22', 6],
+      ['the closing hour', '2026-10-22', 22],
+      ['a month that does not exist', '2026-13-45', 18],
+      // Read as a date, it would become 2 March.
+      ['a day that does not exist', '2026-02-30', 18],
+    ])('answers 404 for %s', async (_, date, hour) => {
+      const referent = await connectReferent();
+
+      const response = await slotRegistrations(referent.token, date, hour).expect(404);
+      expect(response.body.message).toBe(SLOT_NOT_FOUND);
+    });
+
+    it('lists the first and the last slot of the day, and a 29 February', async () => {
+      const referent = await connectReferent();
+
+      await slotRegistrations(referent.token, '2026-10-22', 7).expect(200);
+      await slotRegistrations(referent.token, '2026-10-22', 21).expect(200);
+      await slotRegistrations(referent.token, '2028-02-29', 18).expect(200);
     });
   });
 });
