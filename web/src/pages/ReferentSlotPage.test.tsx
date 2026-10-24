@@ -114,6 +114,15 @@ describe('ReferentSlotPage', () => {
     expect(screen.getByRole('link', { name: '← Retour au planning' })).toBeInTheDocument();
   });
 
+  it('says the slot does not exist for a well-formed address the API does not know', async () => {
+    fakeReferentApi({ 'GET /slots/2026-13-45/18/registrations': () => nestError(404, 'Créneau introuvable.') });
+    renderApp('/referent/slots/2026-13-45/18', { token });
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Créneau introuvable.');
+    expect(alert).not.toHaveTextContent('Impossible de charger les inscrits');
+  });
+
   it('encodes the date and the hour in the path of the request', async () => {
     const requests = fakeReferentApi({
       'GET /slots/a%2Fb/18/registrations': () => nestError(400, ['date must match /^\\d{4}-\\d{2}-\\d{2}$/ regular expression']),
