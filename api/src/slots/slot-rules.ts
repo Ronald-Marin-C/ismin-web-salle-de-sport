@@ -67,6 +67,12 @@ export function isSlotInWindow(date: string, hour: number, now: Date): boolean {
   return hour >= OPENING_HOUR && hour < CLOSING_HOUR && visibleDates(now).includes(date);
 }
 
+/** Whether a slot is on the calendar: an opening hour on a day that exists, visible or not. */
+export function slotExists(date: string, hour: number): boolean {
+  // Read back: `new Date` turns 2026-02-30 into 2 March instead of failing.
+  return hour >= OPENING_HOUR && hour < CLOSING_HOUR && toIsoDate(slotStart(date, hour)) === date;
+}
+
 /** Whether a slot has begun at `now`, from its first second on. */
 export function hasStarted(date: string, hour: number, now: Date): boolean {
   return now.getTime() >= slotStart(date, hour).getTime();

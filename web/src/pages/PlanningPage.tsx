@@ -31,7 +31,8 @@ export const PlanningPage = () => {
 
   // The days come from the API, in its order: today first, in Paris time.
   const dates = [...new Set(slots?.map((slot) => slot.date))];
-  const day = selected ?? dates[0];
+  // After midnight, the planning comes back without yesterday.
+  const day = selected && dates.includes(selected) ? selected : dates[0];
   const canBook = me?.initiationValidated === true && !booking;
 
   const book = async (slot: SlotView) => {

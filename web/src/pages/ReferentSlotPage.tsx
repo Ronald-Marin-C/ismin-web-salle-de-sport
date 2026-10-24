@@ -52,7 +52,7 @@ export const ReferentSlotPage = () => {
       {isError && (
         <div className="error" role="alert">
           <span>
-            {error instanceof ApiError && error.status === 400
+            {error instanceof ApiError && [400, 404].includes(error.status)
               ? 'Créneau introuvable.'
               : `Impossible de charger les inscrits : ${error.message}`}
           </span>
