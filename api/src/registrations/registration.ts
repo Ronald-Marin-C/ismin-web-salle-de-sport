@@ -49,6 +49,13 @@ export class SlotNotBookable extends Error {
   }
 }
 
+/** Thrown by the list of a slot for an hour outside the opening hours, or a day that does not exist. */
+export class SlotNotFound extends Error {
+  constructor() {
+    super('Créneau introuvable.');
+  }
+}
+
 /** Thrown by the booking when the user already holds this slot, or a place in its waiting list. */
 export class AlreadyRegistered extends Error {
   constructor() {

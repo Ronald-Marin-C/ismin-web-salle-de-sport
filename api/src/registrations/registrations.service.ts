@@ -9,6 +9,7 @@ import {
   MAX_SLOTS_PER_DAY,
   minutesBefore,
   SLOT_CAPACITY,
+  slotExists,
   slotStart,
 } from '../slots/slot-rules.js';
 import { SlotsService } from '../slots/slots.service.js';
@@ -20,6 +21,7 @@ import {
   NotYourRegistration,
   RegistrationNotFound,
   SlotNotBookable,
+  SlotNotFound,
   type Registration,
   type RegistrationStatus,
   type SlotRegistrations,
@@ -124,9 +126,11 @@ export class RegistrationsService {
    * Who registered to a slot, for the referents: the holders of a place, then the waiting list.
    *
    * @param date `YYYY-MM-DD`.
-   * @param hour From 7 to 21; nobody is registered at the other hours.
+   * @param hour From 7 to 21.
+   * @throws SlotNotFound for an hour outside the opening hours, or a day that does not exist.
    */
   async listForSlot(date: string, hour: number): Promise<SlotRegistrations> {
+    if (!slotExists(date, hour)) throw new SlotNotFound();
     const registrations = await this.prisma.registration.findMany({
       where: { date, hour },
       // Same order as the planning, so that the positions are the ones the students see.

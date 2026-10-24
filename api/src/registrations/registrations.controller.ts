@@ -41,6 +41,7 @@ import {
   NotYourRegistration,
   RegistrationNotFound,
   SlotNotBookable,
+  SlotNotFound,
   type Registration,
   type SlotRegistrations,
 } from './registration.js';
@@ -91,7 +92,11 @@ export class RegistrationsController {
     }
   }
 
-  /** Lists who registered to a slot: the holders of a place, then the waiting list. */
+  /**
+   * Lists who registered to a slot: the holders of a place, then the waiting list.
+   *
+   * @throws NotFoundException (404) for an hour outside the opening hours, or a day that does not exist.
+   */
   @Get('slots/:date/:hour/registrations')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('referent')
@@ -101,8 +106,14 @@ export class RegistrationsController {
   @ApiBadRequestResponse({ description: 'Malformed date or hour' })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   @ApiForbiddenResponse({ description: 'Requires the referent role' })
-  listForSlot(@Param() slot: SlotParamsDto): Promise<SlotRegistrations> {
-    return this.registrations.listForSlot(slot.date, slot.hour);
+  @ApiNotFoundResponse({ description: 'Hour outside the opening hours, or a day that does not exist' })
+  async listForSlot(@Param() slot: SlotParamsDto): Promise<SlotRegistrations> {
+    try {
+      return await this.registrations.listForSlot(slot.date, slot.hour);
+    } catch (error) {
+      if (error instanceof SlotNotFound) throw new NotFoundException(error.message);
+      throw error;
+    }
   }
 
   /** Lists the connected user's registrations whose slot is not over, by date then hour. */
