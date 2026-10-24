@@ -11,14 +11,6 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1 } },
 });
 
-/**
- * Mounts the React tree in the <div id="root"> of index.html. Around
- * <App />, the providers: each one gives something to every component below it.
- *
- *   BrowserRouter         the current URL
- *   QueryClientProvider   the cache of the requests
- *   AuthProvider          the logged-in user
- */
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
